@@ -50,3 +50,8 @@ targets:
       not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
     universal/ci_runs_the_full_suite_on_a_change_request:
       not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+  sources:
+  - kind: github
+    auto_assign:
+      label: hydraflow
+      assigned_to_agent: true
