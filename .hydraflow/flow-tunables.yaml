@@ -1,0 +1,115 @@
+# .hydraflow/flow-tunables.yaml -- every flow tunable, where its value is read, and the
+# range the flow chamber may move it inside (bead hydraflow-45y4f.30).
+#
+# The operator's ruling of 2026-10-23: factory processes are signals and gates, so a flow
+# value is declared with an allowed range. Inside its range a move is an experiment the
+# flow chamber and the industrial engineer may run, recorded before and after; moving a
+# range is the operator's edit, here. One home per fact: this file holds the RANGE, and
+# the value stays where its reader reads it (the reader key below). printer.flow_tunables
+# reads this file; at read time printer.tunables.declared_tunable refuses a CI load bound
+# outside its range and printer.landing_train_bounds refuses a train size or cadence
+# outside its own, and tests/test_flow_tunables.py is red when any value sits outside its
+# range or a reader key names nothing.
+#
+# THE RANGES ARE PROPOSALS (the operator, 2026-10-31: an agent proposes them, the operator
+# adjusts). Each is derived from the value in force and what was measured behind it; the
+# reason sits beside it. Units: count and minutes are whole numbers where the reader reads
+# them; duration is a reader's Nm or Nh, bounded here in whole minutes.
+#
+# NOT HERE, on purpose: warm medium runners live in 8thlight/ci-runners
+# (setup/runner-classes.conf), another repository; the unit job's max-parallel is a number
+# inside .github/workflows/ci.yml held to the unit plan's legs, not a value a reader reads; and
+# capacity.landing.open_pull_requests is the operator's alone (the bead says so).
+schema_version: 1
+tunables:
+  - name: ci_runs_waiting_or_running
+    reader: { file: .hydraflow/policy.yaml, key: capacity.ci.runs_waiting_or_running }
+    unit: count
+    range: [2, 12]
+    # Low 2: at 1 a single long run holds every build, and the line runs two workers.
+    # High 12: printer.ci_load.CLASSIFIED_RUNS, the most queued runs one reading classifies,
+    # so past it the count is unread and a bound there would never be asked (refused).
+  - name: ci_oldest_queued_minutes
+    reader: { file: .hydraflow/policy.yaml, key: capacity.ci.oldest_queued_minutes }
+    unit: minutes
+    range: [5, 20]
+    # High 20: the twenty-minute rule a queued run must not wait past. Low 5: below it the
+    # hold trips on an ordinary runner start, measured at a few minutes on the medium pool.
+  - name: train_size
+    reader: { file: .hydraflow/policy.yaml, key: merge_gate.train.size }
+    unit: count
+    range: [3, 6]
+    # High 6, the value in force: size bounds a red train's blast radius, how many proved
+    # pull requests one red floor detains. Low 3: below it a train buys little over landing
+    # each pull request alone. The industrial engineer's 2026-10-24 proposal.
+    # The value read is the CEILING: each departure is sized between Low and it from the
+    # staging runs' red-member rate (bead hydraflow-c28tf.39, printer.landing_train_size),
+    # so a higher rate carries a smaller train; with no verdict measured it carries the value.
+    # NOT A VALUE IN THIS RANGE: while an incident is open on the line a train carries one
+    # member (bead hydraflow-hogxw, printer.line_incidents). That is the operator's override,
+    # applied after sizing and lifted when the incident closes with its cause; the range
+    # above does not move for it.
+  - name: train_cadence
+    reader: { file: .hydraflow/policy.yaml, key: merge_gate.train.cadence }
+    unit: duration
+    range: [30, 90]
+    # Low 30: twice merge_gate.train.full_after (15m), so a full train still leaves early
+    # and the base does not churn faster than a floor runs. High 90: twice the 45m in force;
+    # a member waits half the cadence on average, so 90m already means 45 minutes, over
+    # twice the twenty-minute rule. The industrial engineer's 2026-10-24 proposal.
+  # The bundle's bounds (bead hydraflow-qbjwt.32, slice 3): how many beads one print carries,
+  # the seed included, which the flow sampler now records per landed print
+  # (flow_print_samples), so an experiment on them has its measure. The operator named 15
+  # and 20 as the values (2026-11-14: "do it the way I wanted it, I need to see like 20
+  # beads an hour"; bead hydraflow-qhvd5.1); THESE RANGES ARE THE AGENT'S PROPOSAL, for the
+  # operator to change here.
+  # How many of a print's build lanes run at once (bead hydraflow-qhvd5.19): the build seat's
+  # slots, read by printer.capacity_settings.agent_slots and by printer.lane_builds as the
+  # pool its lanes share, and by printer.stage_beads.beads_in_turn for the stage's bound. The
+  # lanes' inference spend scales with it, so the chamber moves it against beads landed per
+  # hour and spend per bead landed (flow_print_samples.usd). THE RANGE IS THE AGENT'S
+  # PROPOSAL. Low 1: one lane at a time, the line before lanes. High 7: the cap of seven
+  # agents at once the operator holds a hand session to (2026-11-14).
+  - name: build_lanes_at_once
+    reader: { file: .hydraflow/policy.yaml, key: capacity.slots }
+    unit: count
+    range: [1, 7]
+  - name: bundle_max_beads
+    reader: { file: .hydraflow/policy.yaml, key: intake.bundle.max_beads }
+    unit: count
+    range: [5, 25]
+    # Low 5: the most the operator's 2026-10-08 and 2026-11-13 rulings set, below which the
+    # 2026-11-14 ask for about twenty beads an hour cannot be met. High 25: a quarter past
+    # the twenty in force, so an experiment can look above it without doubling a print.
+  - name: bundle_min_beads
+    reader: { file: .hydraflow/policy.yaml, key: intake.bundle.min_beads }
+    unit: count
+    range: [1, 20]
+    # Low 1: prefers nothing, the seed alone. High 20: the most in force. The fewest is a
+    # preference the look is asked to meet and never a hold, whatever its value:
+    # printer.bundle.min_beads reads a fewest above the most as the most, so two moves inside
+    # these ranges that cross cannot stop the line.
+  # The batch branch's send rhythm (bead hydraflow-qbjwt.1): how many beads a batch branch
+  # carries when it is sent to its base, and how long a quiet one may wait. The operator
+  # named the values (2026-11-13: "5-15 beads per Feature branch", raised 2026-11-14 to
+  # "15-20 beads per branch"; longest_wait_hours from bead hydraflow-qhvd5.8). THESE RANGES
+  # ARE THE AGENT'S PROPOSAL, for the operator to change here. printer.batch_branch_send's
+  # send_bounds refuses a value outside its range at read time.
+  - name: batch_send_fewest_beads
+    reader: { file: .hydraflow/policy.yaml, key: merge_gate.batch_branch_send.fewest_beads }
+    unit: count
+    range: [5, 20]
+    # Low 5: the operator's "ensure min 5 beads per feature branch". High 20: the most in
+    # force, past which the fewest could never be met before the batch must go.
+  - name: batch_send_most_beads
+    reader: { file: .hydraflow/policy.yaml, key: merge_gate.batch_branch_send.most_beads }
+    unit: count
+    range: [10, 30]
+    # Low 10: two thirds of the fewest in force, so an experiment can send sooner. High 30:
+    # half again the twenty in force; a larger batch is a larger red to repair forward.
+  - name: batch_send_longest_wait_hours
+    reader: { file: .hydraflow/policy.yaml, key: merge_gate.batch_branch_send.longest_wait_hours }
+    unit: hours
+    range: [4, 72]
+    # Low 4: half a working day, under which a quiet batch goes out nearly bead by bead.
+    # High 72: a long weekend, past which low-volume work is parked, which qhvd5.8 refused.

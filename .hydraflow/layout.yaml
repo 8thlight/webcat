@@ -1,0 +1,58 @@
+# This repository's layout, drafted by hydraflow init: where its code, tests and documents live, and the standards it is held to.
+schema_version: 1
+roots:
+  tests: tests
+  mechanisms: tests/architecture
+  docs: docs
+  standards: docs/standards
+  adrs: docs/adr
+  declarations: .hydraflow
+  workflows: .github/workflows
+  git_hooks: .githooks
+  checkout: .
+  sandbox_dockerfile: Dockerfile.sandbox
+  gitignore: .gitignore
+  readme: README.md
+languages: []
+rings:
+  unit: tests/test_{slug}.py
+  scenario: tests/scenarios/test_{slug}_scenario.py
+  e2e: tests/e2e/test_{slug}.py
+standards:
+  adr_enforcement:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  ci_is_configured:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  code_craft:
+    not_applicable: 'not switched on by hydraflow init: code_craft''s count reads javascript, python code, and this line holds none'
+  domain_entities:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  fail_closed:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  hygiene:
+    reads:
+    - checkout
+    not_applicable_rules:
+      credential-baseline-is-stale: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-baseline-rose: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-bearer-value: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-jwt-shaped: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-private-key-armour: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-scan-reaches-the-witness: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-shaped-literal: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-source-not-parseable: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-uri-with-password: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      credential-vendor-prefix: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      marker-spelled-in-prose: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+      readme-standard-drift: 'switched on by hydraflow init: hygiene/standard.yaml marks this rule the kernel''s own, and this line is not the kernel'
+      suppression-guard-is-not-configured: 'switched on by hydraflow init: this rule reads python, which this line does not hold'
+  line_contract:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  no_second_copy:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  ports_and_adapters:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'
+  testing:
+    not_applicable: 'not switched on by hydraflow init: testing''s count reads csharp, go, java, javascript, python, rust, typescript tests under tests/, and this line keeps none there'
+  ubiquitous_language:
+    not_applicable: 'drafted by hydraflow init: not run on this line until it declares the roots this standard reads'

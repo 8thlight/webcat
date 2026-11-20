@@ -1,0 +1,57 @@
+# This line's registration, written by hydraflow init (bead hydraflow-hkbc2.13).
+# Edit it freely: init refuses to overwrite a file that differs from what it writes.
+schema_version: 1
+targets:
+- repo: 8thlight/webcat
+  self: true
+  place: local-debug
+  forge: github
+  standards:
+  - universal
+  branch:
+    work: print/*
+    integration: main
+    release: release
+  chain: docs/changes
+  deploy: 'NONE: drafted by hydraflow init; the line deploys through its own pipeline, and a print''s job ends when its pull request merges green (R33)'
+  test_floor: "NONE: drafted by hydraflow init; this line declares no remote test floor yet, so verify runs none \u2014 replace this with a test_floor: block naming its suites when it has one"
+  gates:
+    universal/healthcheck_fails_when_broken:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/incident_prints_carry_a_test:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/integration_events_run_every_ring:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/scope_is_derived_from_the_merged_diff:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/selector_change_selects_every_ring:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/the_legs_partition_the_plan:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/test_selection_falls_back_to_the_whole_ring:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/release_branch_is_green_only:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/no_dependency_range:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/installs_are_frozen:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/action_references_are_commits:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/image_references_carry_a_digest:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/toolchain_versions_are_exact:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/host_tools_are_checksummed:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/no_version_resolves_at_install:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/no_hook_reaches_a_heavy_suite:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+    universal/ci_runs_the_full_suite_on_a_change_request:
+      not_run: 'unbound by hydraflow init: bind the command that runs it on this line'
+  sources:
+  - kind: github
+    auto_assign:
+      label: hydraflow
+      assigned_to_agent: true

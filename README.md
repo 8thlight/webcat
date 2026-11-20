@@ -118,3 +118,20 @@ curl -X POST http://localhost:7071/api/scrape -H "Content-Type: application/json
 curl -X POST http://localhost:7071/api/scrape_with_images -H "Content-Type: application/json" -d "{\"url\":\"https://bigmedium.com/speaking/sentient-design-josh-clark-talk.html\"}" #text and images
 curl -X POST http://localhost:7071/api/search -H "Content-Type: application/json" -d "{\"query\":\"your search query\"}" # search and get content
 ```
+
+## Gates
+
+What blocks a change, and where. Nothing here waits on a person's click: a pull request
+merges when its required checks are green.
+
+- **Locally**, the hooks `make hooks` installs from `.githooks/` (refused in a worktree,
+  whose hooks are its clone's). `pre-commit` refuses a file staged in part, then runs
+  `make check`. `commit-msg` refuses a subject that is not a sentence starting with a
+  capital letter. `pre-push` refuses a push straight to `staging` or `main`, then runs
+  `make check`. Each fails closed. Never bypass them.
+- **In CI**, `.github/workflows/ci.yml` runs the lanes on every pull request into
+  `staging` and `main`, on every push to them and nightly. Every job has a timeout, every
+  action is pinned by its commit, and every gate after `make deps` runs offline.
+- **On the forge**, `rulesets.json` protects `staging` and `main`: a pull request is
+  required with no approval, the `check` and `witnesses` jobs are required checks, and
+  the branch can be neither deleted nor force-pushed, with no bypass actor.

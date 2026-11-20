@@ -1,0 +1,10 @@
+{
+  "_producer": "printer.line_baselines:record_starting_count",
+  "_note": "This line's starting count for the standard, measured over its own tree when the line switched it on (ADR-0053, step 5). It may fall and never rise; nothing rewrites it.",
+  "_measured_at": "0bf7bd2ff57886caa5aabc45dd9cef42f39a335b",
+  "total": 4,
+  "by_file": {
+    "docker/test_duckduckgo_fallback.py": 3,
+    "docker/test_mcp_protocol.py": 1
+  }
+}

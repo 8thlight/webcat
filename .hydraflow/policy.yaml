@@ -1,0 +1,720 @@
+# This line's policy.yaml, derived by hydraflow init from the kernel's own (printer.line_kit):
+# the kernel's declaration with every path into the factory's own tree left out.
+# hydraflow upgrade derives it again from the installed kernel and refuses to
+# overwrite a copy the line has edited.
+schema_version: 1
+human:
+  default: self_approve
+  classes:
+  - id: mandate
+    approver: review_loop
+    merges_only_after_review: true
+    paths:
+    - .hydraflow/charter.yaml
+    - .hydraflow/policy.yaml
+    - .hydraflow/loops.yaml
+    - .hydraflow/council.yaml
+    - .hydraflow/targets.yaml
+    - .hydraflow/operator-channel.yaml
+    - .hydraflow/escapes.yaml
+    - .hydraflow/alarms.yaml
+    - .hydraflow/definition-of-ready.yaml
+    - .hydraflow/flow-tunables.yaml
+    - .hydraflow/knowledge.yaml
+    - .hydraflow/learning.yaml
+    - .hydraflow/prices.yaml
+    - .hydraflow/prices.lock.json
+    - .hydraflow/milestones.yaml
+    - .hydraflow/product-standards/**
+    - .hydraflow/sop-authority.yaml
+    - deploy/plant-manager/plant-manager.yaml
+    - .hydraflow/floor-filters.yaml
+    - .hydraflow/layout.yaml
+    - '**/*_reddens.py'
+    - agents/**
+    - stages/*.yaml
+    - agents/operator/**
+    - CODEOWNERS
+  - id: spec_gate
+    stage: spec
+    approver: review_loop
+research:
+  required_for:
+  - class:feature
+  - class:mandate
+locks:
+  reproducing_tests_are_read_only:
+    applies_to:
+    - class:fix
+    source: triage.md:reproduces
+    stages: all
+    escape: a genuinely wrong test is a class:feature print against it, ratified with the reasoning
+merge_gate:
+  default: review
+  pr_body_lists_mandate_paths: true
+  loosening_requires: review_loop
+  never_retires_for:
+  - mandate
+  review: human
+  landing: train
+  direct_within: 2
+  batch_branch_send:
+    fewest_beads: 15
+    most_beads: 20
+    longest_wait_hours: 24
+  factory_changes_unadopted: 1
+  batch_send_reading_holds_minutes: 30
+  deps_land: true
+  promotion_lands: true
+  merge_back_lands: true
+  landing_order:
+  - red_base_fix
+  - depended_on
+  - enforcement
+  - priority
+  - age
+  landing_bounds:
+    resolve: 30m
+    checks: 65m
+    age_cap: 90m
+    queue_wait: 3h
+    reproofs: 2
+    reruns: 2
+    unread: 3
+  train:
+    size: 6
+    cadence: 45m
+    full_after: 15m
+    stall_after_windows: 3
+    tracks: 2
+    judge_outrun: true
+    repair_within: 24h
+  landing_slos:
+    landed_per_day: 4
+    queue_to_land: 24h
+    since_last_landing: 4h
+    release_behind: 24h
+fix_rounds:
+  max: 5
+  stop_when:
+    findings_drop_below: 1
+    or_rounds_without_new_class: 2
+review_tiers:
+  anthropic:
+  - claude-fable-5-1
+  - claude-opus-5-5
+  - claude-sonnet-5
+  - claude-haiku-4-5-20251001
+review_rounds:
+  bakes_in:
+  - P0
+  p0_fix_rounds: 2
+verify_rounds:
+  max: 3
+verify_whole_suite:
+  margin: 1.5
+  measurements: 5
+  refactor_after_seconds: 1200
+  slim_set:
+    smoke: []
+    coverage_map:
+      path: var/coverage-map/map.json.gz
+      max_behind: 60
+scope:
+  always_touchable: []
+  sittings: []
+observability:
+  langfuse: metadata
+  langfuse_spans_per_day: 1000
+  langfuse_units_per_month: 50000
+  langfuse_alert_percent: 70
+fail_forward:
+  mode: skill
+  max_per_print: 10
+  timeout_seconds: 1200
+  max_follow_ups: 5
+  plan_rounds_max: 3
+  ask_abandonments_max: 3
+  workflow_max_agents: 4
+  workflow_max_tokens: 50000000
+  workflow_runs_per_site: 2
+  max_sessions_per_day: 150
+  max_concurrent_sessions: 3
+  alert_min_consultations: 4
+  alert_fallback_share_percent: 50
+  alert_bound_breaches: 3
+  alert_cost_per_site_usd: 50
+  landing_window_days: 14
+  landing_floor_percent: 50
+  landing_min_prints: 4
+  trivial_max_touches: 2
+  trivial_refuses_under:
+  - migrations/
+  - .github/
+  take_back_after_seconds: 60
+  take_back_at_most_seconds: 3600
+  apply_migrations: true
+printer_doctor:
+  stall_after_minutes: 20
+  crash_loop_boots: 3
+  crash_loop_within_minutes: 30
+stage_picks:
+  max: 3
+stage_without_a_model:
+  max: 3
+ratify:
+  approver: review_loop
+  lanes_by_class:
+    default:
+      routing: build
+      key: worker
+    mandate:
+      routing: review
+      key: review
+  unattended:
+    prints:
+      cap: 100.0
+      reach:
+      - staging
+  widen:
+    reach:
+    - staging
+    - production
+rollback:
+  approver: operator
+shared_revert:
+  half_merged_after: 24h
+defect_route:
+  exhausted_requires: operator
+brake:
+  conditions:
+    secret_in_stream: operator
+    destructive_command: operator
+    spend_over_cap: operator
+interventions:
+  outcomes:
+    retry: noise
+    policy_change: promote
+    structural: structural
+questions:
+  standing_answers: []
+caretaker:
+  reject_mark_lasts: 720h
+question_deadline:
+  after_seconds: 43200
+  remind_at_percent:
+  - 10
+  - 50
+  - 90
+follow_ups:
+  holds_through_priority: 1
+intake:
+  bundle:
+    mode: lanes
+    min_beads: 15
+    max_beads: 20
+  approved_work:
+    approval_label: approved
+    auto_approved_priority: 0
+  refinement:
+    depth_beyond_slots: 5
+    drafts: 3
+session:
+  ttl: 1h
+plant_keys:
+  plant-manager:
+    key_lane: plant-manager
+    persona: plant-manager
+    print_id: plant-manager
+    stage: shift
+    routing: build
+    cap_usd: 2.0
+    ttl: 1h
+  plant-engineer:
+    key_lane: plant-engineer
+    persona: plant-engineer
+    print_id: plant-engineer
+    stage: round
+    routing: build
+    cap_usd: 2.0
+    ttl: 1h
+console:
+  roles:
+    operator:
+    - intake.link.mint
+    - line.start
+    - line.stop
+    - line.add
+    - print.ratify
+    - chat.ask
+    - bead.create
+    - bead.edit
+    - bead.dep
+    - bead.close
+    - bead.archive
+    - bead.attach
+    - bead.delete
+    - decision.resolve
+    - decision.feedback
+    - source.connect
+    - digest.seen
+    - question.answer
+    - github.sign_in
+    - line.go
+    - settings.machine
+    - print.resume
+    - print.retire
+    - line.init
+    submitter:
+    - intake.submit_one
+    - intake.comment_own
+  grants:
+    store: .hydraflow-local/console
+    ttl: 168h
+    session_ttl: 12h
+  chat:
+    max_read_rounds: 3
+    max_proposals: 3
+  links:
+    ttl: 72h
+    max_bytes: 16384
+  refusals:
+    window: 10m
+  initiatives:
+    stall_after: 24h
+  digest:
+    first_visit: 24h
+  switches:
+    decision.feedback: true
+    bead.create: true
+    bead.edit: true
+    bead.dep: true
+    bead.close: true
+    decision.resolve: true
+    bead.archive: true
+    bead.delete: true
+    bead.attach: true
+    line.init: true
+    source.connect: true
+    print.resume: false
+    print.retire: false
+  hosts:
+  - 127.0.0.1
+  - localhost
+power:
+  drain_timeout: 2m
+  caretaker_drain_timeout: 1m
+  bridge_answer_timeout: 10s
+  requires:
+  - git
+  - gh
+  - bd
+  - uv
+  - make
+  on_start:
+  - read_declarations
+  - reconcile_prints
+  - pause_interrupted
+  - reap_orphans
+  - start_loops
+  resume_from: last_committed_artifact
+ledger:
+  statement_timeout: 30s
+  idle_in_transaction_timeout: 1m
+  link_down_page_after: 5m
+budgets:
+  day: 1000.0
+  print: 120.0
+  line: 1000.0
+  overflow_arms_at: 0.75
+capacity:
+  job_loses_its_slot_for:
+  - printer_fault
+  - retries_exhausted
+  - budget_exhausted
+  agents: 6
+  slots: 3
+  host_stages: 6
+  base_red_fix_slots: 1
+  host:
+    cores: 16
+    memory_gb: 30
+    stage_memory_gb: 4
+    load_per_core: 1.5
+  disk:
+    held_ceiling_gb: 50
+    free_floor_gb: 10
+    build_cache_gb: 8
+    dangling_images_gb: 2
+    pytest_cache_idle_hours: 6
+    collection_pass_minutes: 10
+    collection_pass_items: 2000
+  pressure:
+    available_memory_floor_gb: 2
+    swap_used_ceiling_gb: 10
+    tmp_used_ceiling_gb: 13
+  tmp:
+    free_floor_mb: 64
+    witness_scratch:
+      prefix: witness-
+      owner: src/printer/tmp_roots.py
+      retention_hours: 12
+      room_mb: 1000
+      room_mb_by_label:
+        house_method: 10000
+    roots:
+    - prefix: hydraflow-deploy-owner-
+      owner: src/printer/adapters/local_deploy.py
+      retention_hours: 6
+    - prefix: record-commit-
+      owner: src/printer/record_commit.py
+      retention_hours: 6
+    - prefix: verdict-
+      owner: scripts/hook_shape_differential.py
+      retention_hours: 6
+    - prefix: host-tools-
+      owner: scripts/host_tools.py
+      retention_hours: 6
+    - prefix: hydraflow-fresh-dev-
+      owner: scripts/fresh_dev.py
+      retention_hours: 6
+    - prefix: hydraflow-landing-session-
+      owner: src/printer/migration_fail_forward.py
+      retention_hours: 6
+    - prefix: local-ratchet-execution-
+      owner: src/printer/local_ratchets.py
+      retention_hours: 6
+    - prefix: hydraflow-ratchet-capture-
+      owner: src/printer/adapters/pytest_ratchet_capture.py
+      retention_hours: 6
+    - prefix: hydraflow-chain-home-
+      owner: src/printer/chain_home_migration.py
+      retention_hours: 6
+    - prefix: hydraflow-plan-
+      owner: src/printer/local_affected.py
+      retention_hours: 6
+    - prefix: hydraflow-amendment-policy-
+      owner: src/printer/amendment_ledger.py
+      retention_hours: 6
+    - prefix: hydraflow-slack-chat-
+      owner: src/printer/slack_replies.py
+      retention_hours: 6
+    - prefix: hydraflow-recovery-
+      owner: src/printer/adapters/git_recovery_author.py
+      retention_hours: 6
+    - prefix: hydraflow-batch-
+      owner: src/printer/adapters/git_batch_candidate.py
+      retention_hours: 6
+    - prefix: hydraflow-gate-ruleset-
+      owner: src/printer/adapters/github_factory_gate.py
+      retention_hours: 6
+    - prefix: hydraflow-replay-
+      owner: src/printer/adapters/git_batch_candidate.py
+      retention_hours: 6
+    - prefix: journey-video-
+      owner: src/printer/adapters/playwright_journeys.py
+      retention_hours: 6
+    - prefix: hydraflow-open-print-
+      owner: src/printer/adapters/git_print_opener.py
+      retention_hours: 6
+    - prefix: hydraflow-carry-onto-print-
+      owner: src/printer/adapters/git_print_opener.py
+      retention_hours: 6
+    - prefix: hydraflow-flaky-reports-
+      owner: src/printer/adapters/github_flaky_reports.py
+      retention_hours: 6
+    - prefix: hydraflow-line-declarations-
+      owner: src/printer/landing_queue_line.py
+      retention_hours: 6
+    - prefix: hydraflow-line-policy-
+      owner: scripts/forge_rest.py
+      retention_hours: 6
+    - prefix: hydraflow-merge-body-
+      owner: src/printer/adapters/github_landing_queue.py
+      retention_hours: 6
+    - prefix: hydraflow-send-
+      owner: src/printer/batch_send_git.py
+      retention_hours: 6
+    - prefix: hydraflow-take-back-
+      owner: src/printer/batch_send_git.py
+      retention_hours: 6
+    - prefix: hydraflow-pr-body-
+      owner: src/printer/adapters/github_host.py
+      retention_hours: 6
+    - prefix: hydraflow-pytest-
+      owner: tests/conftest.py
+      retention_hours: 6
+    - prefix: hydraflow-issue-body-
+      owner: src/printer/adapters/github_issue_create.py
+      retention_hours: 6
+    - prefix: hydraflow-pull-request-body-
+      owner: src/printer/adapters/github_pull_request.py
+      retention_hours: 6
+    - prefix: hydraflow-revert-body-
+      owner: src/printer/shared_revert.py
+      retention_hours: 6
+    - prefix: hydraflow-db-archive-
+      owner: src/printer/backup_observer.py
+      retention_hours: 6
+    - prefix: hydraflow-preflight-artifacts-
+      owner: src/printer/adapters/github_preflight_run.py
+      retention_hours: 6
+    - prefix: hydraflow-doctor-session-
+      owner: src/printer/printer_doctor.py
+      retention_hours: 6
+    - prefix: witness-history-hidden-
+      owner: src/printer/witness_history.py
+      retention_hours: 6
+    - prefix: cpu-slots-
+      owner: src/printer/cpu_budget.py
+      retention_hours: 6
+    - prefix: hydraflow-seat-
+      owner: src/printer/adapters/proxy_seat_call.py
+      retention_hours: 6
+    - prefix: hydraflow-review-
+      owner: src/printer/adapters/read_only_tree.py
+      retention_hours: 6
+    - prefix: hydraflow-base-kernel-
+      owner: src/printer/trusted_kernel.py
+      retention_hours: 6
+    - prefix: hydraflow-kernel-doctor-
+      owner: src/printer/kernel_doctor.py
+      retention_hours: 6
+    - prefix: hydraflow-bead-description-
+      owner: src/printer/github_intake.py
+      retention_hours: 6
+    - prefix: hydraflow-lint-line-
+      owner: src/printer/line_lint_cli.py
+      retention_hours: 6
+  not_in_the_fleet:
+  - supervisor
+  - plant-manager
+  - review_loop
+  - industrial-engineer
+  - plant-engineer
+  - technology-strategist
+  - devops
+  - console-chat
+  - evidence-reviewer
+  landing:
+    open_pull_requests: 10
+    restored_by:
+      planned: d1io
+      cadence: whenever the ready queue lands as one train, proved once over the combined tree
+    shares:
+      mandate: 6
+      deps: 3
+      fix: 8
+      feature: 8
+      docs: 3
+    deadband: 1
+  ci:
+    workflow: .github/workflows/docker_mcp.yml
+    runs_waiting_or_running: 12
+    oldest_queued_minutes: 10
+lanes:
+  build:
+    harness: claude
+    primary: claude-opus-5-5
+    overflow:
+    - capacity
+    - budget
+  review:
+    harness: codex
+    primary: gpt-6.1-sol
+    reasoning_effort: high
+    out_of_family: true
+    allow_same_family: false
+  docs:
+    harness: claude
+    primary: claude-sonnet-5
+stage_pairings:
+  plan:
+    harness: claude
+    primary: claude-opus-5-5
+  build:
+    harness: claude
+    primary: claude-opus-5-5
+  review:
+    harness: codex
+    primary: gpt-6.1-sol
+    reasoning_effort: high
+stage_fallbacks:
+  review:
+    harness: claude
+    primary: claude-opus-5-5
+    allow_same_family: true
+sandbox:
+  env_allowlist:
+  - ANTHROPIC_BASE_URL
+  - OPENAI_BASE_URL
+  - CLAUDE_CONFIG_DIR
+  - PATH
+  - TERM
+  - LANG
+  - TZ
+  limits:
+    memory: 4g
+    memory_swap: 6g
+    cpus: 2
+  allowed_tools:
+  - Agent
+  - Bash
+  - Edit
+  - Glob
+  - Grep
+  - Read
+  - WebFetch
+  - WebSearch
+  - Write
+  harness_sandbox:
+    codex:
+      container: danger-full-access
+      host: danger-full-access
+    claude:
+      container: disabled
+      host: disabled
+upstreams:
+  oauth:
+    credential: CLAUDE_CODE_OAUTH_TOKEN
+    protocol: anthropic-messages
+  api_key:
+    credential: ANTHROPIC_API_KEY
+    protocol: anthropic-messages
+  zai:
+    credential: ZAI_API_KEY
+    credential_presentation: bearer
+    protocol: anthropic-messages
+    base_url: https://api.z.ai/api/anthropic
+    billing: subscription
+    probe: none
+  openai_api:
+    credential: OPENAI_API_KEY
+    protocol: openai-responses
+    base_url: https://api.openai.com/v1
+  codex_subscription:
+    auth_file: /run/hydraflow/codex/auth.json
+    protocol: openai-responses
+    base_url: https://chatgpt.com/backend-api/codex
+    probe: none
+  deepseek:
+    credential: DEEPSEEK_API_KEY
+    protocol: openai-responses
+    base_url: https://api.deepseek.com
+    billing: metered
+    responses_compatibility: deepseek-responses
+    review_model:
+      priced: deepseek-v4-pro
+      wire: deepseek-v4-pro
+      family: deepseek
+      max_output_tokens: 8192
+  kimi:
+    credential: KIMI_API_KEY
+    protocol: openai-responses
+    base_url: https://api.moonshot.ai/v1
+    billing: metered
+    responses_compatibility: kimi-responses
+    review_model:
+      priced: moonshot/kimi-k3
+      wire: kimi-k3
+      family: moonshot
+      max_output_tokens: 8192
+  lanes:
+    interactive:
+      anthropic-messages: oauth
+      openai-responses: codex_subscription
+    worker:
+      anthropic-messages: oauth
+      openai-responses: codex_subscription
+    review:
+      anthropic-messages: oauth
+      openai-responses: codex_subscription
+    plant-manager:
+      anthropic-messages: oauth
+    plant-engineer:
+      anthropic-messages: oauth
+    council:
+      anthropic-messages: oauth
+      openai-responses: codex_subscription
+provider_fallbacks: {}
+credentials:
+  at_most: 3
+  store: ~/.hydraflow/credentials
+  state: ~/.hydraflow/credential-state
+  backup_token: r2-token
+  backoff:
+  - 1m
+  - 5m
+  - 15m
+  - 1h
+  recheck:
+    after: 1h
+    every: 30m
+    weekly_from: 24h
+executor:
+  retries: 3
+  stage_timeout_seconds: 5400
+  stage_seconds_per_added_bead: 600
+  self_review_timeout_seconds: 1800
+  fanout_max: 4
+  batch_width: 4
+  tests: host
+  tests_heavy: github_actions
+  ci: github_actions
+  print_stages: docker
+  host_path:
+  - claude
+  - node
+  - git
+  - uv
+  - python3
+  - bash
+  - sh
+  - make
+  - bd
+  - gh
+gate_polarity:
+  permissive_when_true:
+  - batch.legacy_ready
+  - stage_fallbacks.review.allow_same_family
+  - lanes.review.allow_same_family
+  permissive_when_raised:
+  - batch.size
+  - batch.closure_limit
+  - ratify.unattended.prints.cap
+  permissive_when_grown:
+  - sandbox.allowed_tools
+  - ratify.unattended.prints.reach
+  permissive_when_ranked:
+    sandbox.harness_sandbox.codex.container:
+    - read-only
+    - workspace-write
+    - danger-full-access
+    sandbox.harness_sandbox.codex.host:
+    - read-only
+    - workspace-write
+    - danger-full-access
+    sandbox.harness_sandbox.claude.container:
+    - enabled
+    - disabled
+    sandbox.harness_sandbox.claude.host:
+    - enabled
+    - disabled
+batch:
+  legacy_ready: true
+  size: 5
+  closure_limit: 50
+  catch_up_limit: 1000
+  closures:
+  - source: deff8fe8ad603966ebae282c416cf73682274040
+    through: 39b9a797b5cce6dd9256204ab0db7b757251c297
+  - source: 686754e1fe80241bf871a68d73e3ed06881e07b7
+    through: 5a897556b857cd243dc9ad27124c16d4ebe4dfae
+  - source: ebcd65726add9d28ff21b673358826b8a4f475b4
+    through: 50800f45e5a289c03a429fa32d7f626b95f992d0
+  - source: 22289153ec82cd24216e7094b4ef88a60f97f3ec
+    through: e353c760d9e2f0b40948d81d10225161b1bbb4a1
+  - source: 8d7a6e478d8746603c85cdb704e2c0a64c5f352c
+    through: 8c90a52df68cd2b1556de2926235d0aa7f6f2b33
+  suite: expensive
+  on_red: recover_failure

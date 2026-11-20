@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# What blocks a commit locally: a file staged in part, then a red check lane.
+# A file with staged and unstaged changes would be checked as the working tree holds it and
+# committed as the index holds it, so the check would answer for something else.
+# Installed by make hooks. Fails closed: any step that errors refuses the commit.
+set -euo pipefail
+
+partial="$(comm -12 <(git diff --name-only | sort) <(git diff --cached --name-only | sort))"
+if [ -n "$partial" ]; then
+  echo "pre-commit: refused, staged in part (stage the whole file, or none of it):" >&2
+  printf '  %s\n' $partial >&2
+  exit 1
+fi
+make check

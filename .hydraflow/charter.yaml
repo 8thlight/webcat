@@ -1,0 +1,31 @@
+# This repository's charter, written by hydraflow init. Its purpose and goal are the
+# operator's own words for this product, and its articles are the standards it is held
+# to. Everything else the factory needs to run it is read from the factory's own
+# charter, the one the installed CLI carries (inherits: kernel); state a block here to
+# make it this product's own. hydraflow upgrade derives this file again and keeps the
+# purpose and goal.
+schema_version: 1
+inherits: kernel
+purpose:
+  product: The repo for the Web Cat MCP Server - A simple and reliable search server
+  stated_by: operator
+  stated_on: 2026-11-20
+goal:
+  stated_by: operator
+  stated_on: 2026-11-20
+  statement: Build the issues released with the hydraflow label
+  clauses: []
+articles:
+  standards:
+  - ports_and_adapters
+  - domain_entities
+  - adr_enforcement
+  - ci_is_configured
+  - hygiene
+  - testing
+  - ubiquitous_language
+  - code_craft
+  - fail_closed
+  - no_second_copy
+  - line_contract
+  milestones_complete: []

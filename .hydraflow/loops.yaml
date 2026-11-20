@@ -1,0 +1,862 @@
+# This line's loops.yaml, derived by hydraflow init from the kernel's own (printer.line_kit):
+# the kernel's declaration with every path into the factory's own tree left out.
+# hydraflow upgrade derives it again from the installed kernel and refuses to
+# overwrite a copy the line has edited.
+schema_version: 1
+defaults:
+  kill_switch: true
+  on_error: park_and_tell
+  stop_after_failed_passes: 3
+  revive_after: 1h
+  revive_at_most: 3
+  intervention_budget:
+    per_day: 2
+loops:
+- id: advancer
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  every: 1s
+  execution:
+    mode: process
+    path: src/printer/cli.py
+    caller: _power_on
+    call: _idle_until_stopped
+    cadence_symbol: TICK_SECONDS
+  cares_for: ratified prints whose current stage is finished
+  arrives: M4
+  files: none — observes only; it moves an existing print, it does not create one
+- id: comms_ship
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  kill_switch: true
+  every: 1m
+  execution:
+    mode: process
+    path: src/printer/bridge_wiring.py
+    caller: __call__
+    call: self._heartbeat.ticked
+    cadence_symbol: BEAT_EVERY_SECONDS
+    heartbeat: true
+  cares_for: every comms telemetry record reaching the printer's own comms table
+  arrives: M16
+  files: none — observes only; its heartbeat stops while shipping is behind its bound
+- id: comms_bridge
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  every: 1m
+  execution:
+    mode: process
+    path: src/printer/bridge_watch.py
+    caller: tick
+    call: self._heartbeat.ticked
+    cadence_symbol: BEAT_EVERY_SECONDS
+    heartbeat: true
+  cares_for: the comms bridge serving, answering and keeping its journal while stages are running
+  arrives: M16
+  files: none — observes only; its heartbeat stops while the bridge is down
+- id: unsticker
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  kill_switch: true
+  every: 5m
+  execution:
+    mode: caretaker
+    path: src/printer/unsticker_runtime.py
+    caller: production_unsticker_sweep
+    call: stopped_without_an_ending
+    cadence_symbol: SWEEP_SECONDS
+  cares_for: prints that stopped without reaching a terminal state
+  arrives: M4
+  note: 'IT OBSERVES AND ESCALATES; IT DOES NOT RESUME, and the measured reason is stronger than the declaration. Every pause this machine took on 2026-09-24 was a real fault — an unearned evidence pack,
+    a lint red, an absent `ratified.sig` — so a worker that resumed on its own would have spent the retry cap three times faster and told nobody. `printer resume` (bead `ieep`) is the resume the machine
+    performs, and it is what a PERSON runs once the decision is made. This loop may not call it, may not reset a worktree, may not relabel a print and may not touch a branch: its sweep is a function over
+    the labels and rows it was handed, so each of those refusals is structural rather than a promise.'
+  files: one intent per stuck print (keyed by the print id), re-filed only when that print's open intent is closed; and one "factory stopped" intent per cause that shared_cause_at or more stuck prints share
+    (keyed by the cause); and once a day, from what the stuck prints leave of the budget, one daily-halts intent naming the prior day's top three causes by print-hours parked and its landed and halted counts,
+    read through printer.halts.report (keyed by the day, bead hydraflow-yhdp)
+  shared_cause_at: 2
+  finding_budget:
+    per_day: 3
+- id: merge_watch
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  runs_locally: false
+  every: 15m
+  cares_for: pull requests awaiting a merge — landing-queue rows and open release promotions — whose checks went red
+  arrives: M5
+  note: 'It touches no pull request. Unattended it reads and it files: it may not re-run a job, rebase, close or reopen. Re-running a flaked job is the defensible one and it is still refused, because this
+    machine has no flake history to tell a flake from a real failure ("flake tracker" is deliberately not taken in docs/superpowers/specs/2026-09-04-workers.md), and a re-run over a genuinely red check
+    hides the red behind a run count nobody reads. Rebasing rewrites the head the ratified chain was digested over, and closing drops both the queue row and the review thread. Each of those is a person''s
+    decision, and the intent this files is how it reaches them.'
+  files: one intent per pull request awaiting a merge whose checks went red (keyed by the pull request number), re-filed only when that pull request's open intent is closed
+  finding_budget:
+    per_day: 3
+- id: landing_queue
+  runs_locally: false
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  every: 5m
+  cares_for: every pull request open into the line that could land, from ready to landed — submitted or not
+  arrives: M7
+  note: 'Exactly four powers, and they are written down because a worker that merges is the one loop in this file whose mistakes are not recoverable by looking again. It may merge the base into a queued
+    branch — a merge commit, never a rebase and never a force-push — and commit a resolution its resolve stage wrote and a scoped review converged on; it may merge, by merge commit (the operator, 2026-11-13:
+    "nope, no squashes as default, it fucks with merging"), a pull request whose required checks passed on the exact commit it names; and it may disarm an armed pull request on the base, convert it into
+    a queue entry; and it may close and reopen, once per commit, a pull request whose floor never started — no CI run was ever created on its head past the checks bound, so there is no job to re-run (bead
+    `hydraflow-et4wa`). When it stops because the declaration changed it releases the queued ones to be landed by hand. It may not rebase, force-push, re-run a job, close a pull request and leave it closed,
+    or arm auto-merge (bead `hydraflow-esy4.21`). A head it cannot land — red, conflicted past the resolve bound, stalled, or a floor still unstarted after its one re-trigger — is a durable hand-off row
+    with its reason recorded, filed as a finding every pass while its pull request stays open and cleared once it merges or closes. Nothing is dropped. And it ENROLS what nobody submitted (bead `hydraflow-c2nh`):
+    every tick it takes in each pull request open into the base that is out of draft and green, so nothing sits outside the queue for longer than one tick. Enrolling is not arming and needs no fourth power
+    — the row is this machine''s, and the enrolled head then takes the same turn a submitted one takes: the forge''s own base merge, the run proved again on the commit the forge made, a merge only on green
+    at that exact commit. A draft stays out, a red head stays out (refreshing one would spend a CI run per base move on a diff that needs a person), and a pull request handed off as `landing-changed`, `landing-conflict`
+    or `landing-refused` stays out until somebody submits it, because a green run does not answer a commit review has not seen, a resolution nobody wrote, or a forge that said no. While merge_gate.deps_land
+    is on it records a green class:deps pull request as make submit would, under train too, and arms nothing (bead hydraflow-tfs8d).'
+  files: one intent per queued pull request that waited past the declared queue_wait bound (keyed by the pull request number), one per handed-off pull request still open (bead `hydraflow-ha1q`), and one
+    per red class:deps pull request still open while merge_gate.deps_land is on (keyed by the pull request number, bead hydraflow-tfs8d), each re-filed only when that pull request's open intent is closed
+  finding_budget:
+    per_day: 3
+- id: landing_train
+  runs_locally: false
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  every: 5m
+  execution:
+    mode: fleet
+  cares_for: 'the ready set under `merge_gate.landing: train` — drained in batches, one train per cadence window, with nobody''s hand on it'
+  arrives: M7
+  note: 'IT STARTS A LANE AND WAITS FOR NOTHING. Proving a combined tree is a full floor, 26-56 minutes on this line, so the lane is started in its own session and the pass returns: a pass that waited would
+    be a worker the fleet types late and then dead, and this host restarts its printer about once per merge, which would otherwise take a train''s branch, worktree and pull request with it every time. One
+    train at a time, always — a lane an earlier pass started and that is still running is a clause, not a race. WHAT IT MAY NOT DO. It may not merge, arm, close, rebase or force-push anything: it has no
+    forge credential and no port, and the only thing it can do is start the declared lane, which carries every one of #1122''s five refusals itself — the complete required floor over exactly the tree that
+    lands, a squash and no other method, a red that is fixed forward on the train''s own branch rather than searched for a culprit (bead `hydraflow-fvfbf`: nothing in this factory bisects), and nothing
+    armed by any route (the operator, 2026-09-27: "auto merge should never be on, always"). It may not decide the cadence, the size or the order either: those are `merge_gate.train` and `merge_gate.landing_order`,
+    read by their one reader.'
+  files: none — observes only; it starts the declared lane and reports what it started, what held it, and how the last one ended
+- id: flow_samples
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  runs_locally: false
+  every: 15m
+  execution:
+    mode: fleet
+  cares_for: the line's queue depth, pull request age and time-to-land, sampled over time
+  arrives: M7
+  files: none — observes only; it appends one flow sample per pass, and none for a pass the forge did not answer
+- id: outcome_series
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  every: 168h
+  missed_windows: 2
+  execution:
+    mode: fleet
+  cares_for: 'what the line produced each closed week: the charter''s rates and the outcomes beside them, never a zero for a week that says nothing'
+  arrives: M12
+  files: none — observes only; it appends one row per declared column per closed week the table lacks
+- id: factory_gate
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  every: 15m
+  execution:
+    mode: fleet
+  cares_for: every registered target's open pull requests, judged by the gate its ci and gate modes declare
+  arrives: M7
+  files: none — observes only; it replaces one gate record per target per pass, and posts only for a target that declares writes
+- id: idle_sensor
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  kill_switch: true
+  every: 1s
+  execution:
+    mode: tick
+    path: src/printer/cli.py
+    caller: _power_on
+    call: _idle_until_stopped
+    cadence_symbol: TICK_SECONDS
+  idles_with_work_after_passes: 6
+  cares_for: a tick that picks nothing while a print is ready, nothing is in flight and the host is under every declared bound
+  arrives: M9
+  files: one finding per distinct set of decline reasons, keyed through printer.intake.dedup_key, re-filed only when that key's open intent is closed
+  finding_budget:
+    per_day: 4
+- id: governor
+  owner: plant-manager
+  persona: supervisor
+  enabled: true
+  every: boundary
+  execution:
+    mode: boundary
+    path: src/printer/stage.py
+    caller: run_stage
+    call: _budget_decision
+  cares_for: spend against per-print and per-day caps; the kill switch
+  arrives: M2
+  note: must work before anything runs unattended
+  files: none — observes only
+- id: housekeeper
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: startup
+  execution:
+    mode: startup
+    path: src/printer/loop.py
+    caller: power_on
+    call: self._ports.orphan_reaper.reap
+  cares_for: expired keys, stale worktrees and branches, orphaned containers, unclaimed clones moved aside, reaped bodies
+  arrives: M4
+  files: none — observes only; it reaps a prior run's containers and moves its unclaimed clones aside
+- id: branch_reaper
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  runs_locally: false
+  every: nightly
+  execution:
+    mode: fleet
+  cares_for: remote branches and worktrees a landed print left behind
+  signals:
+  - print_branch_bead
+  arrives: M7
+  files: none — observes only; it reaps, and reports per branch and worktree what it spared and why
+- id: freshness
+  runs_locally: false
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 15m
+  execution:
+    mode: fleet
+  quiet: 30m
+  defer_restart_up_to: 20m
+  adopt_within: 0s
+  adopt_at_most_every: 4h
+  cares_for: every core checkout and eligible worktree on this host, current with origin — except the checkout the printer itself runs out of, never moved under a live process (Ruling 112)
+  arrives: M6
+  files: none — observes only; it fast-forwards and merges clean, and reports
+- id: backup
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 6h
+  execution:
+    mode: fleet
+  carries:
+  - db
+  - var
+  - bodies
+  - beads
+  cares_for: everything on this host that git does not carry — every table in the database, the transcripts the ledger addresses, and the receipts and witnesses under var/
+  arrives: M6
+  files: none — observes only; it puts objects and reports what it wrote and how old the newest one is
+- id: ledger_archive
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 15m
+  execution:
+    mode: fleet
+  ships_to: backup
+  tables:
+  - public.ledger
+  - public.flow_samples
+  cares_for: 'that the tower''s Build tab is at most a quarter of an hour behind this line: the ledger, as one consistent read, in the line''s own prefix of the tower''s bucket'
+  arrives: M10
+  files: none — observes only; it puts one object and reports what it wrote and how old the newest one is
+- id: tower_watch
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 5m
+  execution:
+    mode: fleet
+  watches: backup
+  cares_for: 'that a silent or red AWS tower pages this line within half an hour and five minutes: its heartbeat in the tower''s bucket, by when S3 stored it, and every unit it names'
+  arrives: M10
+  files: none — observes only; it reads one object, holds or retires one page, and reports what it read
+- id: restore_drill
+  runs_locally: false
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 24h
+  execution:
+    mode: fleet
+  restores: backup
+  due_after: 720h
+  schema_after_migrations:
+  - deploy/tower/central-store/beads-schema.sql
+  - deploy/tower/central-store/infra-schema.sql
+  cares_for: 'that the backups the backup loop writes restore: the newest db archive in R2, restored, counted and resolved against the newest bodies archive, once a month'
+  arrives: M10
+  files: none — observes only; it restores into a throwaway server, records the drill, and reports
+- id: disk_collector
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  runs_locally: true
+  every: 1h
+  execution:
+    mode: fleet
+  cares_for: the host disk the factory's own residue holds — pytest residue, discarded clones, docker build cache and dangling images, the VM's free blocks
+  arrives: M7
+  files: none — observes only; it collects, and it pages the operator about the one consumable it cannot always collect
+- id: loop_supervisor
+  owner: plant-manager
+  persona: supervisor
+  enabled: true
+  runs_locally: false
+  every: 5m
+  grace_multiple: 3
+  boot_within: 30m
+  print_stall_after: 90m
+  print_decline_stall_after: 60m
+  print_halt_stall_after: 30m
+  lane_stall_after: 30m
+  start_log: var/printer-start.log
+  execution:
+    mode: process
+    host_job: scripts/loop_supervisor_job.sh
+    path: src/printer/loop_supervisor.py
+    caller: loop_supervisor_sweep
+    call: supervisor_pass
+    cadence_symbol: SWEEP_SECONDS
+  cares_for: every other declared loop's heartbeat against its own cadence, whether a printer is running on this host at all, and whether the tree it runs out of still carries the head it follows
+  arrives: M6
+  files: one intent per stopped loop (keyed by the loop id), one per workflow-mode loop with no record of its forge runs on this host (keyed by the loop id), one per start refusal (keyed by the refusal's
+    signature), and one for a run checkout left behind the head it follows (keyed by run-checkout-stale, one standing fault), re-filed only when that intent is closed
+  finding_budget:
+    per_day: 3
+- id: drift_caretaker
+  runs_locally: false
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  kill_switch: true
+  every: 6h
+  cares_for: declared against actual — charter, targets, labels, branch protection
+  arrives: M3
+  files: one intent per drifted fact (charter standard id, target repo, print label, or branch-protection rule), re-filed only when that fact's open intent is closed, and one per set of landing drift past
+    one cleanup cycle
+  finding_budget:
+    per_day: 6
+- id: backlog_caretaker
+  runs_locally: false
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  every: nightly
+  untouched_days: 14
+  flaky_debt:
+    parent: hydraflow-c28tf
+    assignee: ci-mission
+    labels:
+    - flaky
+    - ci-mission
+    reports_hours:
+      value: 48
+      range:
+      - 25
+      - 72
+    p0_sightings:
+      value: 3
+      range:
+      - 2
+      - 10
+    p0_within_hours:
+      value: 24
+      range:
+      - 1
+      - 72
+    p1_within_days:
+      value: 7
+      range:
+      - 1
+      - 30
+  auto_close:
+    untouched_days:
+      value: 30
+      range:
+      - 14
+      - 365
+    veto_days:
+      value: 3
+      range:
+      - 1
+      - 30
+    veto_label: backlog:keep
+  demote:
+    p0_untouched_days:
+      value: 7
+      range:
+      - 1
+      - 60
+    p1_untouched_days:
+      value: 14
+      range:
+      - 1
+      - 90
+  execution:
+    mode: process
+    path: src/printer/backlog.py
+    caller: backlog_caretaker_sweep
+    call: backlog_findings
+    cadence_symbol: SWEEP_SECONDS
+  cares_for: 'the backlog against the definition of ready: shape, ownership, parentage, duplication, and work that has been ready and untouched too long'
+  arrives: M6
+  files: one intent per finding class (keyed by the class, never by the bead), re-filed only when that class's open intent is closed; and one refactor bead per module within its declared margin of a hard
+    limit, keyed by module and limit and never filed twice while open; and one flaky bead per test core CI's legs reported flaky, keyed by node id, noted per sighting and never filed twice while open
+  finding_budget:
+    per_day: 4
+- id: witness_runner
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  every: 168h
+  missed_windows: 2
+  execution:
+    mode: workflow
+    path: .github/workflows/nightly-witnesses.yml
+    job: witness
+  cares_for: the mutation sweep; a stale witness must fail like a red one
+  note: scheduled sweep only; a dispatch re-proves a named proof sooner (bead hydraflow-bk74)
+  arrives: M0
+  files: none — observes only; a stale witness reddens the nightly build, which is not a filed record needing dedup
+- id: proof_watch
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  kill_switch: true
+  every: 15m
+  execution:
+    mode: caretaker
+    path: src/printer/proof_watch_runtime.py
+    caller: production_proof_watch_sweep
+    call: red_proofs
+    cadence_symbol: SWEEP_SECONDS
+  cares_for: declared nightly proofs whose last attempt failed, so a red proof becomes a filed intent instead of a frozen queue
+  arrives: M6
+  note: 'IT FILES AN INTENT; IT DOES NOT BUILD. It may not re-run a proof job, dispatch the nightly, edit a proof or anything a proof reads, or ratify anything. Re-running is the defensible one and it is
+    still refused, for the reason `merge_watch` refuses it: this machine has no flake history to tell a flake from a real failure, and a re-run over a genuinely red proof hides the red behind a run count
+    nobody reads. Dispatching the nightly would spend 70-85 runner-minutes on the machine''s own guess. What it files goes through triage and `ratify`; `.hydraflow/policy.yaml`''s `unattended.prints` signs
+    a print that passes ratify''s checks (the operator, 2026-09-28), and a handover with no stated allowlist does not pass them. Its sweep is a function over the job rows it was handed, so each refusal
+    is structural rather than a promise. What it files is a HANDOVER, not a runnable print: a red proof names a job rather than the files a fix may touch, so no triage can state its allowlist (`printer.caretaker_triage`),
+    and the intent carries no `state:` label. Its body quotes the failed job''s log tail, bounded and fenced as untrusted data. Its one other write is the close: when a proof''s newest attempt is green,
+    the intent filed for it is closed with a comment naming the green run (bead 9j8g).'
+  files: one intent per red proof (keyed by the proof id), re-filed only when that proof's open intent is closed — which this loop does itself, saying so, once a later attempt of that proof is green
+  finding_budget:
+    per_day: 2
+- id: gauge_auditor
+  runs_locally: false
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  kill_switch: true
+  every: 168h
+  missed_windows: 2
+  cares_for: checks that are green because they stopped observing their subject
+  arrives: M4
+  files: one intent per inert check (keyed by the required check's context), re-filed only when that intent is closed
+  finding_budget:
+    per_day: 3
+- id: ratchet
+  runs_locally: false
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  kill_switch: true
+  every: 30m
+  stage_file: stages/ratchet.yaml
+  nights_held: 7
+  module_headroom:
+    line_target: 500
+    reserve_percent: 20
+  cares_for: declared ratchet floors and production modules approaching code-craft size limits
+  arrives: M5
+  files: one finding per oldest live paydown item or module split candidate, deduped by stable finding identity and carrying the triage the approval act can open it with; and, in a pass that files no other
+    paydown, one finding for the oldest offender a floor still holds as a count, keyed by its floor and its one file and never filed twice; a floor held low for nights_held opens an ordinary lowering pull
+    request; it opens no print (bead hydraflow-8b3nz)
+  finding_budget:
+    per_day: 50
+  paydowns_per_tick: 1
+- id: repair
+  runs_locally: false
+  owner: vp-eng
+  persona: senior-principal
+  enabled: true
+  kill_switch: true
+  every: 30m
+  stage_file: stages/repair.yaml
+  cares_for: a batch whose cumulative floor or mutation witnesses went red
+  arrives: M6
+  note: 'It DRAFTS and it does not build, which is this file''s rule for every caretaker and not an exception carved for this one. The repair brief is a governed print; the pipeline builds it, and `printer.unattended_ratification`
+    signs it once it passes ratify''s checks (the operator, 2026-09-28); the post-build review gates its merge. What this worker adds is the goal — resolve this red batch — and the evidence that reproduces
+    it. It may not eject, rebase, force-push, close a pull request, or touch a merged print''s branch, and it may not search the candidate for a member to blame — nothing in this factory bisects. A red
+    it cannot reproduce, or whose repair would undo work that was merged, is a durable hand-off with its reason recorded on the brief: first to the supervising seat `agents/supervisor.md` describes, and
+    then to the operator. Nothing is dropped, and nothing is quietly attempted smaller.'
+  files: one brief per red cut, keyed by the candidate commit, re-filed only when that cut's open brief is closed
+  finding_budget:
+    per_day: 2
+- id: retro
+  runs_locally: false
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  kill_switch: true
+  every: 168h
+  missed_windows: 2
+  stage_file: stages/retro.yaml
+  transcript_digest_bytes: 65536
+  cares_for: what landed on the line since the last completed pass, stale milestone claims, and abandoned production paths, handed to the chamber that observes retro as the evidence of its convening
+  arrives: M5
+  files: one finding per recurring finding class, carrying its governed brief, deduped by class
+  finding_budget:
+    per_day: 3
+- id: strategist
+  runs_locally: false
+  owner: technology-strategist
+  persona: technology-strategist
+  enabled: true
+  kill_switch: true
+  every: nightly
+  stage_file: stages/strategist.yaml
+  cares_for: what changed outside the factory in models, prices, platforms and competitors, written as one note a calendar month with each item a bet or an explicit no change, and each bet handed to the
+    chamber that can enact it; one area of the factory's own practice a month against current practice outside it; and every seat's grounding once a year
+  arrives: M10
+  files: one "What changed outside YYYY-MM" note and one "Practice watch — <area> — YYYY-MM" note a calendar month, and one "Grounding review YYYY" note a year, into the factory vault's 0-Inbox, each keyed
+    by its period and never written twice; each bet and experiment is handed as a proposal to the chamber it names, or the council's fallback, a grounding swap goes as a proposal for the operator to the
+    chamber grounding_review names, and nothing opens a print or edits a charter
+  practice_watch:
+  - area: testing
+    reads:
+    - docs/standards/testing
+    - docs/standards/test_lock
+    - docs/standards/offline_verdicts
+    - docs/standards/evidence_before_verdict
+    - stages/verify.yaml
+    weighs:
+    - escapes in the assurance chamber's reports
+    - rework in the industrial engineer's reports
+    - red checks fixed forward
+  - area: CI and builds
+    reads:
+    - docs/standards/ci_is_configured
+    - docs/standards/hooks_wired
+    - docs/standards/the_line_keeps_moving
+    - stages/build.yaml
+    - Makefile
+    weighs:
+    - CI wait and land time in the flow chamber's reports
+    - mechanical reds in the industrial engineer's rework reports
+    - spend per landed print in the ledger
+  - area: agent design and briefing
+    reads:
+    - agents
+    - stages
+    - src/printer/prompts.py
+    - docs/standards/scope
+    weighs:
+    - the council's records and their vetoes
+    - rework and repair passes in the industrial engineer's reports
+    - spend and model mix in the ledger
+  - area: security
+    reads:
+    - docs/standards/sandbox_trust_boundary
+    - docs/standards/proxy_is_the_only_path
+    - docs/standards/fail_closed
+    - docs/standards/decision_seam
+    weighs:
+    - findings and escapes in the assurance chamber's reports
+    - refusals by name in the chambers' reports
+  - area: delivery flow
+    reads:
+    - docs/standards/dark_factory
+    - docs/standards/overflow_is_declared
+    - docs/standards/defect_route
+    - docs/standards/artifact_chain
+    - stages/merge.yaml
+    - stages/ship.yaml
+    - agents/council/flow.md
+    weighs:
+    - land time
+    - open work and the constraint in the flow chamber's reports
+    - spend per landed print in the ledger
+  - area: docs and knowledge
+    reads:
+    - docs/standards/knowledge
+    - docs/standards/no_second_copy
+    - docs/standards/ubiquitous_language
+    - docs/standards/adr_enforcement
+    - docs/adr
+    - agents/editor.md
+    weighs:
+    - notes filed and left in the vault's inbox
+    - findings in the assurance chamber's reports
+  grounding_review:
+    month: 1
+    chamber: spec
+  finding_budget:
+    per_day: 1
+- id: council
+  owner: vp-eng
+  persona: plant-manager
+  enabled: true
+  runs_locally: false
+  kill_switch: true
+  every: 1h
+  execution:
+    mode: fleet
+  cares_for: every chamber .hydraflow/council.yaml declares, convened on what its triggers name and on what a loop hands it, each decision and its moves on queued work recorded and posted with the operator's
+    veto
+  arrives: M10
+  files: none — observes only, and files no finding; it commits each convening's decision record under agents/council/decisions/ and posts it to the operator with a veto; a chamber's moves close, defer,
+    raise one rung or reorder existing work, each rolled back by a veto; and inside a grant (a chamber's prints key, bead hydraflow-p15yo.3) it writes the record plus one order in infra.chamber_orders,
+    which the work-orders ingest files, never this loop
+- id: work-orders
+  owner: plant-manager
+  persona: plant-manager
+  enabled: true
+  runs_locally: false
+  every: 5m
+  execution:
+    mode: process
+    host_job: scripts/ingest_builder_job.sh
+    path: src/printer/factory_ingest/work_orders.py
+    caller: _run
+    call: main
+    cadence_symbol: CADENCE_SECONDS
+  cares_for: every open order in infra.work_orders and infra.chamber_orders, each filed once as a bead, a chamber's only once the council record that approves it is verified; and every learning-proposal
+    note in the declared vault's inbox the proposal door reads, filed once as a labelled queue bead (R68)
+  arrives: M12
+  files: one bead per open order and one per learning proposal note, deduped by its tag ([WO-<id>] for the plant manager's, [CO-<id>] for a council chamber's, [LP-<created> <note>] for a proposal note)
+    and by its own filed-record stream under agents/factory-ingest/
+  finding_budget:
+    per_day: 3
+- id: sensor_bugsink
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  runs_locally: true
+  every: 15m
+  cares_for: Bugsink signatures and bug reports becoming drafted intents
+  arrives: M16
+  files: one intent per Bugsink or bug-report signature, re-filed only when that signature's open intent is closed
+  recurrence:
+    window: 24h
+    at_least: 3
+  finding_budget:
+    per_day: 20
+- id: sensor_intake
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  runs_locally: false
+  every: 15m
+  cares_for: halt signatures the ledger has recorded before becoming filed defects
+  arrives: M16
+  files: one intent per distinct halt signature, re-filed only when that signature's open intent is closed
+  recurrence:
+    window: 24h
+    at_least: 3
+  finding_budget:
+    per_day: 20
+- id: intake_planner
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  runs_locally: false
+  every: 15m
+  execution:
+    mode: fleet
+  cares_for: drafted prints, classified, ranked with evidence, ordered and admitted at the rate the line lands
+  arrives: M8
+  files: none — observes only; it labels and comments on the drafted print a proposal is about, and files no intent
+- id: source_intake
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  every: 2m
+  local_every: 15s
+  execution:
+    mode: fleet
+  cares_for: 'every source a line declares, each item one bead in the line''s Inbox: each .md of a markdown folder, changed while it waits, each Jira issue, and each open GitHub issue, told when its print
+    opens and lands; released when the source''s rule matches'
+  arrives: M10
+  files: none — observes only, and files no finding; it takes each item of a declared source into the line's Inbox as one bead keyed by its external_ref (md:<path>, the Jira key, gh-N or the issue's address),
+    never a second for one item, and comments on or closes a GitHub issue as its print opens and lands
+- id: print_steward
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  every: 15m
+  cares_for: open prints that are not approved work, finished prints whose issue or pull request is still open, open prints whose branch already merged, and open prints opened past their ask's abandonment
+    hold
+  arrives: M8
+  note: 'It parks (pauses with the reason not_approved, never ends) an open print on the chain that carries neither the approval label nor a P0 label and has no approval row, never one a live printer has
+    a stage of in flight; and it files that print''s work as a finding naming the exact way back in. When an approval lands for a print it parked, it resumes that print where it stopped through printer
+    resume''s own act (bead hydraflow-10k1n). It closes the issue of a print already at a terminal state, citing the state. It files an open signed print still before merged whose work branch the forge
+    has already merged into the line''s integration branch (bead hydraflow-wrgzl), and acts on it no further: whether a print landed and moves on is the tick''s, and it opens no print. It files an open
+    print whose triage carries an abandonment count at or past fail_forward.ask_abandonments_max, an ask opened past its hold (bead hydraflow-f5fg6), and acts on it no further.'
+  files: one finding per open print opened past its ask's abandonment hold (keyed by the issue number, bead hydraflow-f5fg6), named again every pass while it stays open carrying that count; one finding
+    per print it parks (keyed by the print's issue number), named again every pass until the print is approved and resumed, or a person closes it; one finding per open print whose branch already merged
+    while its label is before merged (keyed by the issue number), named again every pass while that holds; one finding per open pull request from a work branch whose print is at a terminal state it does
+    not close the pull request for (keyed by the pull request's number, bead hydraflow-k825k), named again every pass while it stays open; it opens no print
+  finding_budget:
+    per_day: 20
+- id: bead_sync
+  owner: supervisor
+  persona: supervisor
+  enabled: true
+  every: 15m
+  local_every: 5m
+  execution:
+    mode: fleet
+  cares_for: the printer's own bead store and every registered clone's, each pulled from and pushed to its declared remote; on a local instance every registered line's own store, each with its own origin
+  arrives: M10
+  files: none — observes only; it syncs, pages a store it cannot sync, and reports
+- id: record_commit
+  runs_locally: false
+  owner: plant-engineer
+  persona: supervisor
+  enabled: true
+  every: 1h
+  execution:
+    mode: fleet
+  cares_for: the record files the printer home holds under agents/ that the integration branch's tip does not, carried into one pull request at a time
+  arrives: M10
+  files: none — observes only, and files no finding; it opens one records pull request when the home's record files differ from the tip, and none while that one is open
+- id: console_reading
+  owner: staff-designer
+  persona: staff-designer
+  enabled: true
+  runs_locally: false
+  every: 30m
+  execution:
+    mode: fleet
+  readings_per_day: 6
+  model: claude-opus-5-5
+  cares_for: open pull requests into the line whose mapped console screens changed after the staff-designer's recorded reading
+  arrives: M10
+  files: none — observes only; it reads a stale head, pushes the reading to its branch, and reports per branch what it read, passed over or could not read
+- id: refiner
+  runs_locally: true
+  owner: product-manager
+  persona: product-manager
+  enabled: true
+  kill_switch: true
+  every: 5m
+  stage_file: stages/refiner.yaml
+  finding_feed:
+    parent: hydraflow-44nxu
+  cares_for: an approved queue below its declared depth, and approved beads with no triage the door accepts
+  arrives: M8
+  note: It opens prints only through the door (printer.front_door_wiring.open_print), on a triage the door's own rule has already passed, and only for a bead the operator's recorded standing ask covers
+    (printer.standing_ask) or one at P0. It never writes the approval label and never approves its own finding. A refused draft is rewritten with the refusal, up to intake.refinement.drafts times; what
+    it still cannot refine goes to the fail-forward skill at the intake site first (printer.fail_forward_seat), and waits for the operator, paged by name, only when the skill asks or cannot answer. A queue
+    it cannot refill waits the same way.
+  files: one finding per approved bead it cannot refine (keyed by the bead id), named again every pass until the bead refines or changes; one approved finding labelled fast-follower per remainder a first
+    slice the fail-forward skill delivered leaves; the prints it opens go through the door, one per bead, and only while that bead has no live print; and one finding per batch of urgent follow-ups it cuts,
+    keyed by the batch's seed
+  follow_up_batches:
+    stage_file: stages/follow_up_batcher.yaml
+  finding_budget:
+    per_day: 10
+  runs_while_muted: true
+- id: language_caretaker
+  runs_locally: false
+  owner: editor
+  persona: editor
+  enabled: true
+  kill_switch: true
+  every: 168h
+  missed_windows: 2
+  cares_for: citations of this tree in the factory vault's filed patterns and gotchas that no longer resolve
+  arrives: M3
+  files: one finding per vault citation that no longer resolves (keyed by the note and the citation), named again every pass the citation still does not resolve
+  finding_budget:
+    per_day: 10
+- id: vault_editor
+  owner: editor
+  persona: editor
+  enabled: true
+  runs_locally: false
+  kill_switch: true
+  every: 1h
+  execution:
+    mode: fleet
+  cares_for: notes waiting in the factory vault's inbox
+  arrives: M10
+  files: none — observes only; it files, merges or rejects each inbox note it takes, and reports per note what it did and why, or why the note waits
+- id: prices_sync
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  runs_locally: false
+  every: nightly
+  execution:
+    mode: workflow
+    path: .github/workflows/prices-sync.yml
+    job: sync
+  cares_for: what a token costs
+  arrives: M2
+  note: 'Pulls model rates from LiteLLM into the pinned lock and opens a PR when one moves. A loop rather than an effect because nothing in the factory can trigger it: the rate changes on somebody else''s
+    server, and no merge, gate or label in this repo knows it happened. Opens a PR rather than committing, because a rate change is a change to what every ledger row in the system believes.'
+  files: one open PR per prices.lock.json diff; a rate move while a PR is still open updates that PR rather than opening a second
+  finding_budget:
+    per_day: 1
+- id: fresh_dev
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  every: nightly
+  execution:
+    mode: workflow
+    path: .github/workflows/fresh-dev.yml
+    job: bring-up
+  cares_for: a clean clone that follows the local-mode guide word for word, and the line it brings up
+  arrives: M10
+  note: warn only; a red run files workflow-red and holds no merge or promotion (bead hydraflow-3028l)
+  files: none — observes only; a red nightly reddens its own run, which the loop supervisor files as one workflow-red intent keyed by this loop's id
+- id: release_cut
+  owner: vp-eng
+  persona: vp-eng
+  enabled: true
+  runs_locally: false
+  every: 3h
+  execution:
+    mode: workflow
+    path: .github/workflows/release-cut.yml
+    job: cut
+  cares_for: the newest known good staging commit, proposed to main
+  arrives: M10
+  note: a red scheduled cut files workflow-red and one red-release-cut escape row when one print owns its range (bead hydraflow-te25w.3)
+  files: none — observes only; a red scheduled cut reddens its own run, which the loop supervisor files as one workflow-red intent keyed by this loop's id
+- id: mutants_nightly
+  owner: assurance
+  persona: assurance-lead
+  enabled: true
+  runs_locally: false
+  every: nightly
+  execution:
+    mode: workflow
+    path: .github/workflows/mutants-nightly.yml
+    job: mutants-report
+  cares_for: the tests of every module staging changed since the last night, checked for teeth past what a pull request's budget reaches
+  arrives: M13
+  note: warn only; survivors are a warning and a red run files workflow-red, holding no merge or promotion (bead hydraflow-u5wog.4)
+  files: none — observes only; survivors land in the run's job summary as a warning, and a red night reddens its own run, which the loop supervisor files as one workflow-red intent keyed by this loop's
+    id
