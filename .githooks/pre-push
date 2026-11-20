@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# What blocks a push locally: a push straight to a protected branch, then a red check lane.
+# staging and main move only by a pull request their rulesets (rulesets.json) let merge;
+# git config hooks.protectedBranches names others, space-separated, in their place.
+# Installed by make hooks. Fails closed: any step that errors refuses the push.
+set -euo pipefail
+
+protected="$(git config --get hooks.protectedBranches || echo 'staging main')"
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  for branch in $protected; do
+    if [ "$remote_ref" = "refs/heads/$branch" ]; then
+      echo "pre-push: refused, $branch moves only by a pull request; push a branch and open one" >&2
+      exit 1
+    fi
+  done
+done
+make check

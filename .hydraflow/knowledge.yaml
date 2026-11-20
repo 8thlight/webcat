@@ -1,0 +1,29 @@
+# This line's knowledge declaration, written by hydraflow init from the kernel's own
+# (printer.line_knowledge): the plan kind alone, the one a milestone's plan is joined by.
+# Edit it freely: init refuses to overwrite a file that differs from what it writes.
+schema_version: 1
+kinds:
+- id: plan
+  identity:
+    form: files
+    files: docs/superpowers/plans/*.md
+    name: ^docs/superpowers/plans/([^/]+)\.md$
+  lifecycle:
+    source: the plan's milestone, complete once the charter's milestones_complete lists it
+    milestone: -m([0-9]+)-
+    milestone_name: M\1
+    members:
+      complete: .hydraflow/charter.yaml:articles.milestones_complete
+    otherwise: open
+    transitions:
+    - - null
+      - open
+    - - open
+      - complete
+outside:
+- path
+- bead
+- lane
+- operator_fact
+- actor
+relationships: []

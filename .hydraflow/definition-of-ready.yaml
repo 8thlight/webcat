@@ -1,0 +1,177 @@
+# What a bead carries before anyone may pick it up — the definition of ready, declared
+# once, in the tree this machine treats as its declarations.
+#
+# WHY THIS FILE EXISTS. Measured on this repository's own store on 2026-09-20: 788
+# issues, 293 open, 343 ready, 0 stale, 0 orphaned — and 328 flagged by `bd lint` for
+# missing required sections, with `validation.on-create` unset, so a bead could be
+# created in any shape at all. The coordinator filed about forty beads in one night and
+# their quality varies with whatever it happened to know at the time. Nothing in this
+# tree said what a bead must carry, so nothing could say a bead was short. That is the
+# drift a declaration exists to stop, and the reason this is a declaration rather than a
+# paragraph in an instruction file: how work is described here is a fact about this
+# machine, and a fact about this machine lives beside the others.
+#
+# WHY `.hydraflow/` AND NOT `docs/standards/`. A repository standard is an obligation on
+# the TREE, decided by a check in the architecture ring against files in the checkout: a
+# module's shape, a workflow's jobs, a declaration's keys. This is an obligation on the
+# WORK — on rows in a Dolt database that no checkout contains and no ring can read
+# offline. `offline_verdicts` is what makes that line load-bearing: a gate here must be
+# re-derivable with the network off and the store absent, and a standard whose mechanism
+# had to open the issue tracker could not be. So the shape is declared here, beside
+# `.hydraflow/policy.yaml` and `.hydraflow/loops.yaml`, and the thing that ENFORCES it is
+# the issue tracker's own gate, reading this file's render. `no_second_copy`'s
+# `constant_declarations` already says the quiet part — "the `.hydraflow/` tree IS the set
+# of files this machine treats as declarations" — and `dark_factory`'s
+# `declaration_files` already reads every `.hydraflow/*.yaml`, so a rule dropped from here
+# is a loosening the moment it is dropped, with no further wiring.
+#
+# WHAT THIS FILE DOES NOT CARRY, AND THE ONE THING IT DELIBERATELY REPEATS. The tracker
+# has built-in per-type requirements — steps to reproduce for a bug, success criteria for
+# an epic, decision/rationale/alternatives for a decision, goal and findings for a spike —
+# and its per-type configuration is ADDITIVE to them: a built-in can never be relaxed by
+# anything written here. So none of those is restated; a second copy could only ever
+# disagree, and the tracker's vocabulary stays the tracker's.
+#
+# `Acceptance Criteria` is the exception, and it is deliberate. It is named below under
+# `every_type` although the tracker already requires it of a bug, a task, a feature, a
+# story and (as success criteria) an epic. Two reasons, and neither is oversight. First,
+# it is exactly the reach that matters: a chore, a spike and a decision are asked for no
+# acceptance criteria at all by the tracker, and "work somebody can call finished" is not
+# a property of five of the eight types this house files. Second, the overlap cannot
+# disagree in the direction that would hurt — a built-in is never relaxed from here, the
+# tracker folds the two requirements into one line rather than asking twice, and the only
+# thing this house can do by naming it is widen the set of types it is asked of. A copy
+# that can only ever tighten is not the copy `no_second_copy` is about.
+#
+# WHAT IT COSTS, stated rather than omitted. The gate checks the SHAPE — that the heading
+# is there — and never the answer beneath it. A bead can satisfy every line of this file
+# with four empty headings. That is not a hole this declaration opens; it is the whole of
+# what a mechanical gate can buy, and the reason `bd` refuses a shapeless bead is so that
+# the person filing it has to decide what to put there rather than discover, weeks later,
+# that nobody ever did. What reads the ANSWER is review, and the backlog caretaker bead
+# `duu.50.2` will build.
+#
+# Read by `src/printer/definition_of_ready.py`, rendered into `.beads/config.yaml`, and
+# held to that file by `tests/test_definition_of_ready.py` in both directions.
+#
+# AND READ A SECOND TIME, THROUGH THAT RENDER. The backlog caretaker bead `duu.50.2`
+# landed while this was being built, and `src/printer/backlog.py:sections_for` reads what
+# a bead must carry out of `.beads/config.yaml`'s per-type sections — the same key the
+# tracker's own gate reads. So the gate and the caretaker do not hold two opinions about
+# the shape of a bead: one of them is the tracker, the other reads the tracker's settings,
+# and both of those settings are this file rendered. What is left over is the only thing
+# neither of them can do: decide what the shape IS, which is what this file is for.
+schema_version: 1
+
+definition_of_ready:
+  # THE LEVEL THE TRACKER'S OWN GATE RUNS AT, and the one line that moves.
+  #
+  # `warn` today, and `error` is a one-word edit here plus the mechanical re-render into
+  # `.beads/config.yaml` that `tests/test_definition_of_ready.py` refuses to let drift.
+  # It is `warn` and not `error` because 328 beads in this store are already short of
+  # this shape, bead `duu.50.3` owns cleaning them, and a gate switched to `error` over a
+  # backlog nobody has cleaned teaches one lesson only: how to route around the gate. A
+  # warning that names the missing heading on every single create is what makes the
+  # cleaning finite, and the day it is finite this word becomes `error`.
+  #
+  # `off`, `warn` and `error` are the tracker's vocabulary, not this file's.
+  on_create: warn
+
+  # WHAT A BEAD SAYS WHEN NOBODY OWNS IT YET.
+  #
+  # An owner or an explicit unowned marker — never a blank line, and never the heading
+  # left off. "Unowned" and "nobody wrote the heading" read identically from outside, and
+  # only one of them is a decision somebody made. One spelling, here, so that a sweep for
+  # unowned work is a search for one word rather than a guess at seven.
+  unowned_marker: unowned
+
+  # WHICH HEADING THAT MARKER STANDS UNDER.
+  #
+  # A pointer rather than a second copy: `every_type` below is the list, this names one of
+  # its entries, and `src/printer/definition_of_ready.py` refuses a name that is not in
+  # that list — so renaming the heading in one place and not the other is a refusal rather
+  # than a skeleton that quietly stops answering the owner question at all.
+  owner_section: Owner
+
+  # THE TYPES THIS HOUSE FILES, and therefore the types the gate is declared over.
+  #
+  # A choice rather than a copy of the tracker's type list: `milestone` is absent because
+  # this machine's milestones are the charter's (`.hydraflow/charter.yaml`) and are not
+  # filed as beads, and a requirement declared over a type nobody files is a rule that can
+  # never fire. A type added to this list gains the shape on the next render.
+  types:
+    - bug
+    - chore
+    - decision
+    - epic
+    - feature
+    - spike
+    - story
+    - task
+
+  # WHAT EVERY BEAD CARRIES, whatever its type.
+  #
+  # `Why` because a title says what to do and almost never says what makes it worth
+  # doing; a bead whose why is missing is one the next reader has to reconstruct, and
+  # reconstruct differently. `Acceptance Criteria` because work nobody can call finished is
+  # work that is never finished — see the note at the top of this file for why it is named
+  # here although the tracker asks five of these eight types for it already.
+  # `Owner` and `Parent` because the two questions asked of every untended backlog are
+  # "whose is this" and "what is it part of", and a bead that answers neither is the shape
+  # that becomes an orphan without anybody deciding it should.
+  #
+  # `Parent` takes a parent bead or a milestone: an epic's parent is a milestone, a task's
+  # is its epic, and both are the same question — what does finishing this move.
+  every_type:
+    - Why
+    - Acceptance Criteria
+    - Owner
+    - Parent
+
+  # AND WHAT ONE TYPE CARRIES BEYOND THAT.
+  #
+  # A bug carries `Measurement` — the measurement that found it. A bug report with no
+  # measurement is an opinion about the machine, and this repository has already paid for
+  # that: every bead this milestone opened against the backlog began with a number
+  # somebody ran, and the ones that did not begin that way were the ones re-litigated.
+  by_type:
+    bug:
+      - Measurement
+      # The surface that will show this fault next time, or the reason none is needed: the
+      # monitoring half of the operator's 2026-10-05 house rule, stated in
+      # docs/standards/house_method/README.md and asked as a heading only (hydraflow-66qsc).
+      - Monitoring
+
+  # THE CLAIM ON THE ASK, owed by a bead whose touches reach the mandate class (bead
+  # hydraflow-licyx.3; Station 7 of docs/superpowers/specs/2026-11-07-self-improving-factory-design.md).
+  # An amendment can be judged only against what it claimed to move, so such a bead states
+  # two fields on lines of their own: measure, the outcome column its change claims to move
+  # as series.column, and window, the whole weeks after its landing it is judged over.
+  # Warned at create by name while on_create is warn (python -m printer.definition_of_ready_cli
+  # claim), refused at error. The refiner copies them beside a triage's beads: block and the
+  # amendment ledger carries them on its row. A change a chamber or the learning line asked
+  # for and stated none of is read against the defaults below, and the row says they are
+  # defaults; a print a person opens carries no claim unless its body names one. The default
+  # column is reverts for a gate and a standard alike while the outcome series is the only
+  # one with declared directions, and never regression_escape_rate (the spec, R66).
+  claim:
+    measure: outcome.reverts
+    window: 8 weeks
+
+  # WHY EACH HEADING IS OWED, one line per heading above, said where the heading is asked
+  # (bead hydraflow-duu.50.11). A bug met four headings in one warning, two from the
+  # tracker's built-ins and two from here, and nothing said which came from where or why
+  # both were owed, so the first instinct was to read it as one thing asked twice.
+  # python -m printer.definition_of_ready_cli explain --type <type> prints each heading
+  # this file asks of a type with its reason and this file named as the source. A heading
+  # with no reason here is refused, so a new one cannot arrive unexplained.
+  reasons:
+    Why: a title says what to do and almost never what makes it worth doing
+    Acceptance Criteria: work nobody can call finished is work that is never finished
+    Owner: whose this is, or the unowned marker, so an orphan is a decision and not an accident
+    Parent: what finishing this moves, a parent bead or a milestone
+    Measurement: >-
+      the number that says it is real and how big. It is not the tracker's own Steps to
+      Reproduce, which a bug also owes and which say how to make it happen again; neither
+      does the other's job
+    Monitoring: the surface that will show this fault next time, or why none is needed

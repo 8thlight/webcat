@@ -1,0 +1,375 @@
+# Product standard, kind: craft. What every printed product carries, whatever it is.
+id: universal
+layer: universal
+# craft: nothing here follows from what the product is about. A health check that
+# goes red, structured logs, a runnable README, the bug button and a test left by
+# every incident are what any professional product carries.
+#
+# So are the building codes the operator asked for: CI in depth,
+# scoped only to what a change reaches (ADR-0033), every version pinned
+# (ADR-0034), a structured answer from a model being JSON (ADR-0039), hooks that run
+# only the cheap scans while the heavy tests run in CI (ADR-0035 Decision 7), and code
+# that is cohesive and simple (bead hydraflow-72va4). They are rows
+# here rather than product standards of their own, and the reasons are in those records. In short: design §13b already gives every target's CI to
+# this product standard and §13c-b gives it every target's dependencies; `universal` is
+# the base every other layer's `requires:` names, and `obligations_for` refuses a stack
+# without it, so no registration can forget them; and a new product standard id is a
+# charter enactment and a §11b row before it is anything a target can carry.
+kind: craft
+
+obligations:
+  - id: health_endpoint
+    statement: "The product answers a health check that fails when it is genuinely broken, not merely when the process is dead."
+  - id: structured_logs
+    statement: "Logs are structured and carry the request identity, or they are prose nobody can query."
+  - id: the_bug_button
+    statement: "Every product ships an in-app feedback control. It is the only sensor in the whole stack the machine cannot fake."
+  - id: a_stranger_can_run_it
+    statement: "The README's quickstart works for someone with the repo and no access to the author."
+  - id: incident_leaves_a_test
+    statement: "A print whose intent came from an incident adds a test that reproduces the failure, and that test is permanent. An incident with no test attached is an incident the machine will have again."
+
+  # ── CI in depth, scoped only to what a change reaches (ADR-0033) ──────────────
+  # The operator, 2026-09-19: "this needs to be a building standard, ci in depth but
+  # only on the changes that are affected". Depth is owed on every integration event;
+  # scope is allowed only on a change request, and only in the direction of running more.
+  # ── a structured answer from a model is JSON (ADR-0039) ──────────────────────
+  # The operator, 2026-09-21: "prefer json when you need structured information from an
+  # llm". A row here rather than a product standard of its own for the reason the two
+  # above give: it follows from nothing about what the product IS. Anything that asks a
+  # model for a fact it will branch on has this problem, and the failure mode is silence
+  # rather than a red gate — a prose answer parsed leniently returns a best effort, and
+  # nothing downstream can tell a best effort from an answer.
+  - id: a_structured_answer_from_a_model_is_json
+    statement: >-
+      When the product needs a model to state a fact it will ACT on — a verdict, a
+      declaration, a list, a choice — it asks for JSON and decodes JSON, and it does not
+      read that fact out of prose or accept prose as a fallback (ADR-0039). Prose stays
+      what a model says to a PERSON: the sentence a refusal carries, the account a
+      transcript holds. Three properties are what make this a standard rather than a
+      preference, and each is a property of the decode rather than of the prompt: an
+      ordinary prose answer cannot be mistaken for a declaration, because prose is not a
+      JSON object; the shape that is decoded can be printed into the prompt verbatim, so
+      drift between what is asked for and what is accepted is testable rather than hoped
+      for; and a partial answer is a refusal rather than a guess, because `json.loads`
+      returns an object or raises where a regex returns its best effort. A model that
+      answers in prose where a structured answer was asked for is refused and costs an
+      attempt, which is the accepted trade: an attempt spent on a malformed answer is
+      visible, and a misread answer is not.
+  - id: ci_runs_in_full_on_integration
+    statement: >-
+      Every ring runs in full on every integration event: each push to the integration
+      branch, the nightly and the release cut (ADR-0033; design §14c-c puts the whole suite
+      on the batch rather than on one print). In full means nothing is excluded or selected
+      by a diff; a receipt earned over exactly the same tree is that run, not a skip of it
+      (Ruling 216 of the M5 build plan). Only a change request may be scoped, and the event
+      that gets the narrower posture is named affirmatively, so an event nobody named runs
+      everything (Ruling 191 of the M6 build plan). The mutation-witness sweep, which design
+      §13b and §14c-d schedule nightly rather than per push, runs in full every scheduled
+      night; a push that re-proves only the witnesses it implicated adds evidence and
+      replaces it not. A release cut runs no witness sweep: the operator took it out of the
+      cut on 2026-10-10 (bead hydraflow-p6ty7, ADR-0046), and the night's sweep is advisory
+      and gates no cut.
+  - id: ci_scope_is_the_merged_diff
+    statement: >-
+      A change request runs every ring its diff reaches. CI decides which from the diff of
+      the tree the forge would merge, never from what the author, the print or its spec
+      claims (ADR-0033; design §13a derives a change's shape from the diff, never from
+      prose). Run is the default: a path no declaration names runs every ring, and a ring
+      is skipped only by a positive exclusion that names the paths it cannot read. A
+      skipped ring reports as excluded by that declaration, never as absent and never as
+      passed.
+  - id: a_selector_change_runs_everything
+    statement: >-
+      A change to the selection itself (the exclusion declaration, the step or lane that
+      applies it, or the configuration of test-level selection) runs every ring in full. A
+      selector never judges its own change: a change that narrowed it would be choosing
+      which of its own tests run (ADR-0033; ADR-0031 trusts a harness exactly as far as
+      its own always-human class protects it).
+  - id: each_ring_runs_once
+    statement: >-
+      For one change, every ring the plan selects runs exactly once: no ring or test is
+      run by two legs, and none the plan selected is lost between the plan and the legs,
+      so the legs' selections together are the plan (ADR-0033). A second run of the same
+      tests buys no evidence, and a dropped ring is a green nobody earned.
+  - id: test_selection_fails_open
+    statement: >-
+      Test-level selection inside a ring fails open. When its cache is missing or older
+      than the change's base, or the diff touches an input the selector cannot trace (a
+      declaration, a fixture, test support code, the manifest, the lockfile or the
+      interpreter pin), the whole ring runs. Its cache is written only by a trusted
+      integration run and only read by a change request, so no change can teach the
+      selector to skip its own tests (ADR-0033; Ruling 216 of the M5 build plan: a proof
+      holds only while every input its deciding mechanism read is unchanged).
+  - id: escapes_are_recorded_and_filed
+    statement: >-
+      An escape is a failure in a full run, of a ring or test that the merged change
+      request's selection skipped. Every escape is recorded against that change and filed
+      as a finding that names the exclusion or the selection gap that let it through
+      (ADR-0033; design §14c-d makes the escape ledger the evidence about faults nobody
+      imagined; ADR-0032 routes a failure and never drops it). A selection with no escape
+      record is one nobody can show was right.
+
+  # ── the release branch is green only (bead hydraflow-8omvk) ──────────────────
+  # The operator, 2026-10-06, a factory standard: mailroom #27 merged red onto a main that
+  # had CI and no ruleset, so nothing refused it. GitGuardian, which the bead first named
+  # beside CI, is not installed on 8thlight and was removed on 2026-11-02, so the required
+  # check is the line's own CI.
+  - id: the_release_branch_is_green_only
+    statement: >-
+      The line's release branch moves only by a pull request whose required status checks
+      are green: a ruleset on it requires a pull request asking for no approval, requires at
+      least one status check (the line's CI), refuses deletion and force-push, and lists no
+      bypass actor. An approval would make a green head wait on a person (ADR-0020), and a
+      branch with CI and no ruleset merges red. The factory reads the rules the forge applies
+      to the branch and writes none: changing a live ruleset is the operator's act.
+
+  # ── every version pinned (ADR-0034) ───────────────────────────────────────────
+  # The operator, 2026-09-19: "always pin versions, always, document that as a building
+  # standard". What a build installs is what its checkout says, byte for byte, or a green
+  # run is evidence about a tree nobody can rebuild.
+  - id: direct_dependencies_are_exact
+    statement: >-
+      Every direct dependency is declared at an exact version, never as a range, a floor
+      or latest (ADR-0034). A range promises that a release nobody has read yet behaves
+      like the one that was tested.
+  - id: the_lockfile_is_the_install
+    statement: >-
+      A committed lockfile resolves the whole dependency graph, transitive dependencies
+      included, to exact versions with an integrity hash for every artifact, and every
+      install, on a laptop, in CI and in an image, installs from it frozen or locked, so an
+      install that would change the lock fails instead (ADR-0034; design §13c-b commits the
+      lock; ADR-0031: verdicts stay re-derivable offline because the lock pins the exact
+      artifacts).
+  - id: ci_actions_are_pinned_by_commit
+    statement: >-
+      Every CI action from outside the repository is referenced by its full commit SHA,
+      with the release tag it corresponds to as a comment beside it. A tag is a pointer its
+      owner can move, and a moved tag runs code nobody here reviewed (ADR-0034).
+  - id: images_are_pinned_by_digest
+    statement: >-
+      Every container image, a base image in a build file or a service image in a compose
+      file, is referenced by its content digest. A tag names whatever its publisher pushed
+      last (ADR-0034; design §11a already has a print's chain pin its sandbox image digest).
+  - id: toolchains_are_pinned_exactly
+    statement: >-
+      Every toolchain, meaning the language runtimes, the package managers and the CI
+      setup tools, is pinned to an exact version wherever it is installed or selected. A
+      major, a minor or "latest" leaves the rest of the version to whoever installs it
+      (ADR-0034; bead 36qw: a local interpreter one minor ahead of the hosted one made every
+      local green evidence about an interpreter the floor never ran).
+  - id: host_tools_are_pinned_and_verified
+    statement: >-
+      Every host and CLI tool a build fetches is pinned to an exact version and checked
+      against a recorded checksum before it runs. A download nobody verified is not a pin
+      (ADR-0034).
+  - id: pins_move_by_review
+    statement: >-
+      A pin moves only by a reviewed change to the pin itself, such as a dependency-update
+      pull request, and that change moves the lock, digest or checksum with it. Nothing
+      resolves a newer version at install time (ADR-0034; design §13c-b lands every update
+      as a class:deps print, and stops one that touches the always-human class for review).
+
+  # ── hooks run the cheap scans, heavy tests run in CI (ADR-0035 Decision 7) ─────
+  # The operator, 2026-09-19: "building starndard - hooks for linting, security and other
+  # low effort scans, the heavy test rus beyond sanity and saftey happen in the ci to off
+  # load work", and "1 machine can build lkke 2-3 repos with account cycling and then tthe
+  # testing does not bottle neck". A row here for the reason ADR-0033's and ADR-0034's codes give: it
+  # follows from nothing about what the product is, only from where it is built.
+  - id: hooks_run_only_the_fast_lane
+    statement: >-
+      A line's git hooks run one declared fast lane: lint, formatting, types where the stack
+      has them, secret and dependency scanning, and other low-effort scans. The lane is named
+      once, and every hook calls it by that one name rather than growing a list of its own
+      (ADR-0035 Decision 7; this repository's make pre-push-check is the reference). The
+      host's capacity goes to building, two to three lines per machine, so a hook is never
+      what saturates it.
+  - id: heavy_tests_run_in_ci
+    statement: >-
+      Test runs beyond sanity and safety, meaning the unit matrix, the architecture ring,
+      e2e, contracts and the mutation witnesses, run in CI on the pull request's merged tree
+      and never in a hook (ADR-0035 Decision 7). What the hooks do not run is waiting for
+      the change on its pull request, so moving a suite out of a hook moves it to CI and
+      never out of the change's path to merge.
+  # ── a milestone proves itself (bead hydraflow-q477f) ─────────────────────────────
+  # The operator, 2026-10-06: "make evidence is a factory standard". A row here because
+  # every product reaches milestones, a game as much as a web app.
+  - id: a_milestone_is_proved_by_make_evidence
+    statement: >-
+      Every product carries one lane, make evidence, that proves its current milestone works
+      and writes the report of what it ran. The milestone is derived from the product's own
+      declarations, never typed into the lane. The product runs on seeded demo data with
+      every outside service faked, so no live call is made and every outward send is
+      recorded. The lane drives every user flow the milestone names, records what each flow
+      did, and exits non-zero when a flow fails or a check has no result. The report is
+      written to a git-ignored folder and is never committed.
+  # ── a visible build carries its evidence (beads hydraflow-415rw.1, hydraflow-mlcha) ──
+  # The verify stage makes every build's evidence bundle and the landing refuses a visible
+  # build without one (docs/standards/build_evidence). A row here because this file is what
+  # a line's plan and build seats read in the tree they work in, so the product's side of
+  # that contract is in front of them when they plan and build a thing a person uses.
+  - id: a_visible_build_carries_its_evidence
+    statement: >-
+      A product a person sees or uses declares what that person does with it in a
+      journeys.yaml at the root of its tree, each journey a list of steps the verify stage
+      walks in a browser and records, a video per journey and a picture after every step.
+      It carries make test, its unit tests, and make evidence, which proves the current
+      milestone; verify runs both on the built commit. A visible build whose evidence
+      bundle is missing or short does not land, and a build with no journeys.yaml is read
+      as one with no visible output.
+  # ── cohesion and simplicity (bead hydraflow-72va4) ───────────────────────────────
+  # The operator, 2026-11-14: "lets add a build standard for cohesion, simplisity into the
+  # repo", and, the same day, "its jsut a building standard mate". Two rows here, plain
+  # statements a product's build is held to, for the reason every row above gives: they
+  # follow from nothing about what the product is, only from its being code somebody
+  # will read and change. How this repository holds its own machine to the same two
+  # ideas, by measurement, is docs/standards/code_craft; these rows ask that of every
+  # product and restate none of its numbers.
+  - id: each_part_has_one_reason_to_change
+    statement: >-
+      Cohesion: each module, class and function has one reason to change, and what
+      changes together lives together. A unit whose parts serve two unrelated callers is
+      two units sharing a name, and is split along that seam; a change that has to touch
+      several modules in step says those modules are one idea spread out, and they are
+      brought together. A name says the one thing its unit does.
+  - id: the_simplest_design_that_meets_the_need
+    statement: >-
+      Simplicity: the product is built with the simplest design that meets the need it
+      has today. A function has few paths through it, few exits and short conditions; a
+      layer, wrapper or abstraction that only forwards a call it adds nothing to is not
+      written, and an interface earns its place with a second implementation or a fake
+      the tests use; nothing is made general, configurable or pluggable for a need nobody
+      has yet.
+  # ── the testing DSL (bead hydraflow-72va4.2) ─────────────────────────────────────
+  # The operator, 2026-11-14 ~19:00 UTC, asked whether the testing DSL becomes a building
+  # code beside cohesion and simplicity: yes. One row, for the reason the two above give:
+  # it follows from the product's being code with tests somebody will read and change.
+  # How this repository holds its own suite to it, layer by layer and by count, is
+  # docs/standards/testing (the section on the test-support layer); this row asks the same
+  # four layers of every product and restates none of its numbers.
+  - id: tests_speak_through_a_testing_dsl
+    statement: >-
+      A product's tests build their data through a testing DSL of four layers, each
+      reaching only the one beneath it. Test data builders, one per aggregate root, with
+      setters in the domain's language that return the builder and a build that returns
+      the real production type. Object mothers, named canonical instances named for the
+      business concept a test wants, delegating to the builders. Scenario factories that
+      assemble a coherent world with a fluent API for the one or two things a test needs
+      different, so a test reads as a scenario name plus its deltas. And every port the
+      product depends on is faked in the product's own fake world, which the scenarios
+      assemble. A test does not build a whole aggregate or a whole world by hand.
+
+spec_must_answer:
+  - "who operates this"
+  - "if this came from an incident, which test now reproduces it"
+
+# A gate is built, or owed_by the M9 plan's task or the bead that builds its check (M9
+# Task 2.4). A built gate names no lane here: each line that carries it says, under gates:
+# in its registration in .hydraflow/targets.yaml, the command that runs it there or why it
+# is not run there (R33, the operator, 2026-10-07). A built gate a line's registration
+# does neither for is refused at registration and at print time; an owed gate asks nothing
+# of a line until it is built. printer.product_standards reads both.
+gates_in_target:
+  - id: healthcheck_fails_when_broken
+    checks: "a scenario breaks a dependency and proves the health check goes red"
+  - id: incident_prints_carry_a_test
+    checks: "a print whose intent cites an incident adds at least one test, and that test fails against the pre-fix code"
+  - id: make_evidence_proves_the_milestone
+    owed_by: "hydraflow-q477f"
+    checks: "the line's make evidence runs its current milestone's flows on demo data with every outside service faked, writes the report, and exits non-zero on a failed flow"
+  - id: feedback_control_present
+    owed_by: "hydraflow-e71p"
+    checks: "the bug button posts to the intake endpoint with version, route and trace id"
+
+  # CI in depth (ADR-0033). Checks the target's own CI carries, one per obligation above.
+  # ADR-0033's table names the checks that implement them in this repository: rules of
+  # ci_is_configured, which this repository's architecture ring runs, and unit tests in
+  # tests/test_leg_selection.py and tests/test_affected_tests.py, which test runs. The
+  # escape row stands owed: R2 struck the escape loop, and striking the row is a ruling.
+  - id: integration_events_run_every_ring
+    checks: >-
+      a push to the integration branch, the nightly and the release cut each plan every
+      declared ring with nothing excluded or selected by a diff; the scheduled night runs
+      the whole witness sweep and the release cut runs none; and an event the workflow runs on that
+      is not named as a change request is planned in full
+  - id: scope_is_derived_from_the_merged_diff
+    checks: >-
+      on a change request CI derives the rings from the diff of the merged tree; a fixture
+      path no declaration names selects every ring; only a declared exclusion skips one,
+      and a skipped ring reports excluded, never absent or green
+  - id: selector_change_selects_every_ring
+    checks: >-
+      a diff touching the exclusion declaration, the step or lane that applies it, or the
+      test-level selector's configuration selects every ring
+  - id: the_legs_partition_the_plan
+    checks: >-
+      the legs' selections together equal the plan, and no ring or test is in two legs
+  - id: test_selection_falls_back_to_the_whole_ring
+    checks: >-
+      test-level selection runs the whole ring when its cache is missing or older than the
+      base or the diff touches an input it cannot trace, and no change-request run writes
+      its cache
+  # RULED 2026-10-30 (bead hydraflow-sr7xl; the operator took the console's defaults,
+  # ~23:40Z): the gate stands and its lane is the escape ledger, bead hydraflow-60vc4,
+  # which owes it until that ledger's lane lands.
+  - id: escapes_are_recorded
+    owed_by: "hydraflow-60vc4"
+    checks: >-
+      a seeded mis-exclusion that a full run then fails records one escape against the
+      merged change and files one finding naming the exclusion; a correct exclusion
+      records none
+
+  # The release branch is green only (bead hydraflow-8omvk). Decided by printer.release_gate
+  # over the forge's recorded rules for the branch; the drift caretaker reads every
+  # registered line's live answer, and each line's lane holds its declared ruleset.
+  - id: release_branch_is_green_only
+    checks: >-
+      the rules the forge applies to the release branch require a pull request asking for
+      no approval and at least one status check, refuse deletion and force-push, and come
+      from rulesets with no bypass actor; a branch no ruleset protects fails every rule
+
+  # Every version pinned (ADR-0034). Each gate is a test in
+  # tests/architecture/test_pinned_versions.py (ADR-0034's Enforced-by), run by the ring.
+  - id: no_dependency_range
+    checks: >-
+      every direct dependency in the manifest names one exact version; a range, a floor, a
+      caret, a wildcard or a bare name fails
+  - id: installs_are_frozen
+    checks: >-
+      the lockfile is committed and records an integrity hash for every artifact, and every
+      install in the lanes, the workflows and the image builds runs frozen or locked
+  - id: action_references_are_commits
+    checks: >-
+      every external action reference names a 40-character commit SHA and carries its tag
+      as a comment
+  - id: image_references_carry_a_digest
+    checks: "every build-file base image and every compose image names a sha256 digest"
+  - id: toolchain_versions_are_exact
+    checks: >-
+      every runtime, package manager and setup-tool version the lanes, workflows and images
+      name is exact, down to the patch release
+  - id: host_tools_are_checksummed
+    checks: >-
+      every host or CLI tool a lane, workflow or image fetches names an exact version and
+      is verified against a recorded checksum before it runs
+  - id: no_version_resolves_at_install
+    checks: >-
+      no lane, workflow or image build resolves a version at install time, and the
+      dependency-update configuration covers every ecosystem the target pins: packages,
+      actions and images
+
+  # Hooks run the fast lane (ADR-0035 Decision 7). Each gate is a test in
+  # tests/architecture/test_hooks_run_the_fast_lane.py (ADR-0035's Enforced-by), run by the ring.
+  - id: no_hook_reaches_a_heavy_suite
+    checks: >-
+      every executable git hook that starts make starts only the declared fast lane, no
+      hook runs a test runner itself, and neither that lane nor any lane a hook starts
+      reaches, by prerequisite or recipe, a lane that runs a test runner
+  - id: ci_runs_the_full_suite_on_a_change_request
+    checks: >-
+      the floor workflow is dispatched with the staging commit to follow and runs on the
+      schedule, and its plan step, which plans every one of the floor's suites, runs under
+      exactly the declared follower condition; since the operator's 2026-10-23 rulings the
+      suites run behind staging as the followers, the change request they gate is the
+      promotion into main, which requires their verdict, and core CI alone gates a pull
+      request into staging

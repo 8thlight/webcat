@@ -1,0 +1,6 @@
+# This line's stage image, written by hydraflow init from what its repository holds.
+# Toolchains found: none; no marker of python, node, rust, java, maven, gradle, go, pnpm, yarn, dotnet was found.
+# The shared base carries python, node; this recipe installs nothing more.
+# Edit it freely: it is the line's own. Its final stage stays FROM the shared base.
+ARG HYDRAFLOW_BASE_IMAGE
+FROM ${HYDRAFLOW_BASE_IMAGE}
